@@ -128,6 +128,21 @@ base64 of the frontend-API host, so the issuer falls out of the key itself.
 The script also writes `CLERK_APP_ID` to the root `.env`; every other `clerk-*` target reads
 it from there.
 
+> **Rebuild the web image afterwards.** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is inlined into
+> the image at build time, so a web container built before this step keeps serving the old
+> key and Clerk silently talks to the wrong instance:
+>
+> ```bash
+> make docker-build-web && make docker-run-core
+> ```
+>
+> The symptom is a sign-in page that renders but authenticates against nothing you
+> configured. Confirm which key is actually live with:
+>
+> ```bash
+> curl -s http://localhost:3000/sign-in | grep -o 'pk_test_[A-Za-z0-9]*' | head -1
+> ```
+
 **By hand:** Dashboard → API keys.
 
 Server — `server/.env.<environment>`:
