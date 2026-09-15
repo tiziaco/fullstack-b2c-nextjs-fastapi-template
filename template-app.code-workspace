@@ -1,0 +1,82 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "template-app"
+		},
+		{
+			"path": "web-app"
+		},
+		{
+			"path": "server"
+		}
+	],
+	"settings": {
+		// Performance improvements
+		"files.watcherExclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/node_modules/**": true,
+			"**/.next/**": true,
+			"**/.venv/**": true,
+			"**/__pycache__/**": true,
+			"**/.pytest_cache/**": true,
+			"**/.ruff_cache/**": true
+		},
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/.pytest_cache": true,
+			"**/.ruff_cache": true,
+			"**/.mypy_cache": true,
+			"**/*.pyc": true,
+			"**/node_modules": false,
+			"**/.next": false,
+			"**/*.code-workspace": false,
+			"web-app": true,
+    		"server": true,
+
+		},
+		"search.exclude": {
+			"**/.venv": true,
+			"**/poetry.lock": true,
+			"**/node_modules/**": true,
+			"**/node_modules": true,
+    		"**/.next": true,
+			"**/dist": true,
+			"**/build": true,
+			"**/.git": true
+		},
+		// Python performance settings
+		"python.analysis.diagnosticMode": "workspace",
+		"python.analysis.indexing": true,
+		"python.analysis.packageIndexDepths": [
+			{
+				"name": "server",
+				"depth": 2
+			},
+			{
+				"name": "web-app",
+				"depth": 2
+			}
+		],
+		// Editor performance
+		"editor.bracketPairColorization.enabled": false,
+		"editor.guides.bracketPairs": false,
+		"workbench.editor.closeOnFileDelete": true,
+
+		// Ensure frontend tools (TypeScript, ESLint, Prettier, Jest) resolve correctly
+		"js/ts.tsdk.path": "web-app/node_modules/typescript/lib",
+		"eslint.nodePath": "web-app/node_modules",
+		"prettier.prettierPath": "web-app/node_modules/prettier",
+		"jest.jestCommandLine": "web-app/node_modules/.bin/jest",
+		"terminal.integrated.env.osx": {
+			"PATH": "web-app/node_modules/.bin:${env:PATH}"
+		},
+		"terminal.integrated.env.linux": {
+			"PATH": "web-app/node_modules/.bin:${env:PATH}"
+		},
+		"terminal.integrated.env.windows": {
+			"PATH": "web-app/node_modules/.bin;${env:PATH}"
+		},
+	}
+}

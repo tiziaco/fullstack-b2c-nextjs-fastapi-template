@@ -1,0 +1,5 @@
+# Root-level Docker Compose env file (contains secrets)
+.env
+
+# Git worktrees
+.worktrees

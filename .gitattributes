@@ -1,0 +1,15 @@
+# Generated artifacts. Produced by `make gen-contract` and committed, never
+# hand-edited — orval runs with clean:true and rewrites the whole tree.
+#
+# linguist-generated collapses these by default in GitHub's PR diffs (still
+# expandable, still reviewable) and keeps them out of the repository's language
+# statistics, so a reviewer sees the hand-written change first. It is a GitHub
+# display setting only: git tracks, diffs and merges these files exactly as
+# before, and `gh pr diff` still shows them in full.
+#
+# On a merge conflict inside the generated tree, do not resolve it by hand and
+# do not reach for a merge driver: take either side, run `make gen-contract`,
+# and commit the result. The tree is a pure function of server/openapi.json, so
+# regenerating is always correct and hand-merging never is.
+web-app/packages/api-client/src/generated/** linguist-generated=true
+server/openapi.json                          linguist-generated=true

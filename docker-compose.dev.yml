@@ -1,0 +1,200 @@
+services:
+  web:
+    container_name: web
+    env_file:
+      - ./web-app/apps/web/.env.local
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: web
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${API_HOST_PORT:-8100}}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?required at build time - Next.js inlines it. Set it in web-app/apps/*/.env.local (the Makefile exports it) or in the Dokploy environment}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+    restart: always
+    ports:
+      - "${WEB_HOST_PORT:-3000}:3000"
+    networks:
+      - app-network
+
+  # One-shot release phase: applies Alembic migrations, then exits.
+  # `server` is gated on this exiting 0, so a failed migration fails the whole
+  # `up` instead of starting an app against a stale schema.
+  # Shares `server`'s image tag by construction — keep the env config in sync.
+  migrate:
+    container_name: migrate
+    image: ${COMPOSE_PROJECT_NAME}-server
+    build:
+      context: ./server
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    command: ["bash", "scripts/migrate.sh"]
+    volumes:
+      # Everything the container executes is mounted in dev, so it can never run
+      # a half-stale mix of live app code and image-baked migrations/scripts.
+      # (That mix is what produced "Can't locate revision" — models were live,
+      # the migration set was frozen at the last build.)
+      - ./server/app:/app/app
+      - ./server/alembic:/app/alembic
+      - ./server/scripts:/app/scripts
+      - ./server/logs:/app/logs
+      # Read at import by app/core/metadata.py, so it is executed code too.
+      - ./server/pyproject.toml:/app/pyproject.toml:ro
+    env_file:
+      - ./server/.env.${APP_ENV:-development}
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - POSTGRES_HOST=db  # Override for Docker networking
+      - POSTGRES_PORT=5432
+      # Migrations don't call an LLM; a missing key must not fail a deploy.
+      - REQUIRED_ENV_VARS=
+    depends_on:
+      db:
+        condition: service_healthy
+    # Must not restart: a restarted container never reaches a completed state,
+    # so `service_completed_successfully` would never latch.
+    restart: "no"
+    networks:
+      - app-network
+
+  server:
+    container_name: server
+    image: ${COMPOSE_PROJECT_NAME}-server
+    build:
+      context: ./server
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    ports:
+      # Host side only. 8000 collides with other projects on the same machine,
+      # so it is overridable via API_HOST_PORT in the root .env. The container
+      # port stays 8000 — the healthcheck below, prometheus' `server:8000`
+      # target and the ngrok service all address it on the compose network.
+      - "${API_HOST_PORT:-8100}:8000"
+    volumes:
+      - ./server/app:/app/app
+      - ./server/alembic:/app/alembic
+      - ./server/scripts:/app/scripts
+      - ./server/logs:/app/logs
+      # Read at import by app/core/metadata.py, so it is executed code too.
+      - ./server/pyproject.toml:/app/pyproject.toml:ro
+    env_file:
+      - ./server/.env.${APP_ENV:-development}
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - POSTGRES_HOST=db  # Override for Docker networking
+      # The env file's POSTGRES_PORT is the HOST port (for running the
+      # server outside Docker). On the compose network the server reaches
+      # db on its CONTAINER port, which is always 5432 regardless of the
+      # host binding above.
+      - POSTGRES_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Bounded: an unbounded on-failure turns a real startup fault into a silent
+    # infinite crash-loop. After 5 attempts the container stays dead and visible.
+    restart: on-failure:5
+    networks:
+      - app-network
+
+  # Development-only tunnel so Clerk (public internet) can reach the local
+  # server. Bound to the account's static domain (NGROK_DOMAIN) so the
+  # endpoint URL registered in the Clerk dashboard survives restarts.
+  # ngrok's --url flag requires a full URL with scheme; NGROK_DOMAIN is
+  # stored as a bare hostname (matches the ngrok dashboard and
+  # docs/setup/clerk-webhooks.md), so the scheme is prepended here.
+  ngrok:
+    container_name: ngrok
+    image: ngrok/ngrok:latest
+    command: http server:8000 --url=https://${NGROK_DOMAIN}
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    depends_on:
+      - server
+    networks:
+      - app-network
+
+  db:
+    container_name: db
+    image: pgvector/pgvector:pg16
+    env_file:
+      - ./server/.env.${APP_ENV:-development}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5434}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - app-network
+  
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+    networks:
+      - app-network
+    restart: always
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infra/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - app-network
+    restart: always
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    command:
+      - '--docker_only=true'
+    networks:
+      - app-network
+    restart: always
+
+  
+volumes:
+  postgres-data:
+  grafana-storage:
+
+networks:
+  app-network:
+    driver: bridge

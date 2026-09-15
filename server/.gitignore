@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+.pytest_cache/
+.DS_Store
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.jsonl
+
+# Virtual environments
+.venv
+
+# Environment variables
+.env
+.env.development
+.env.staging
+.env.production
+.env.test
+
+# Misc
+*.ipynb
+.coverage
+coverage.xml
+/htmlcov/
+
+# Reports
+evals/reports/

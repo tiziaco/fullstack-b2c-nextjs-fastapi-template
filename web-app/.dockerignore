@@ -1,0 +1,49 @@
+# Local env files - never copy into the build context.
+# Next.js auto-loads .env*.local at build time and inlines NEXT_PUBLIC_* into
+# the bundle, so a copied file lets a developer's machine decide what ends up
+# baked into the image, and puts CLERK_SECRET_KEY in a builder layer.
+#
+# The ** prefixes are load-bearing. .dockerignore patterns are matched against
+# paths relative to the context root, and the context root here is web-app/,
+# while the files that actually hold credentials live at
+# apps/<app>/.env.local. Bare `.env*.local` matches only web-app/.env.local --
+# a file that does not exist -- so the rule read as though it worked while
+# `COPY apps ./apps` carried both apps' real .env.local into the builder.
+.env
+.env*.local
+**/.env
+**/.env*.local
+!**/.env.example
+
+# Version control
+.git
+.gitignore
+.github
+
+# Next.js
+node_modules
+npm-debug.log
+.next
+
+
+# Development tools
+.idea
+.vscode
+
+# Logs
+logs/
+*.log
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.dev.yml
+
+# Documentation
+docs/
+README.md
+AGENTS.md
+*.md
+
+# Build artifacts
+Makefile

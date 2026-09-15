@@ -1,0 +1,239 @@
+{
+  "id": null,
+  "uid": "api-overview",
+  "title": "API Overview",
+  "tags": ["api", "http"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 4,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Request Rate",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{handler!~\"/metrics|/health\"}[1m]))",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Error Rate (5xx)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_requests_total{status=~\"5..\",handler!~\"/metrics|/health\"}[5m])) / sum(rate(http_requests_total{handler!~\"/metrics|/health\"}[5m]))",
+          "legendFormat": "error %",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "P95 Latency (excl. chat)",
+      "description": "Chat is excluded because a p95 over a bimodal population is not the slowest 5% of API calls - it is dominated by whichever class is slower as soon as that class exceeds 5% of traffic. Including chat, this number swings between ~0.05s and ~7.4s on traffic mix alone, with no performance change behind it. Chat has its own panel to the right, and P95 Latency by Endpoint below keeps every handler visible. Measured non-chat p95 is ~0.05s, so the 0.5s/2s thresholds were always right and simply could not be reached.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{handler!~\"/metrics|/health|/api/v1/chatbot/.*\"}[5m])) by (le)) and (sum(rate(http_request_duration_seconds_count{handler!~\"/metrics|/health|/api/v1/chatbot/.*\"}[5m])) > 0)",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 2 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "P95 Chat Latency",
+      "description": "End-to-end HTTP time for the two chatbot handlers, which the panel to the left deliberately excludes. This is the whole request - auth, memory retrieval, tool calls, checkpoint writes - not just the model call the LLM dashboard times. Thresholds are calibrated against recorded data (healthy p95 ~7.4s), not guessed; a 2s step would sit red permanently. Note the figure is coarse: http_request_duration_seconds uses Histogram.DEFAULT_BUCKETS (see app/api/middlewares/prometheus.py), whose only edges above 2.5s are 5, 7.5 and 10, so chat sits in the 5-7.5 interpolation band and a p95 past 10s returns +Inf, which Grafana shows as an infinity sign. That reads correctly as worse than 10s, but it is a bucket artifact rather than a measurement.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{handler=~\"/api/v1/chatbot/.*\"}[5m])) by (le)) and (sum(rate(http_request_duration_seconds_count{handler=~\"/api/v1/chatbot/.*\"}[5m])) > 0)",
+          "legendFormat": "chat p95",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 15 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request Rate by Status",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"2..\",handler!~\"/metrics|/health\"}[1m]))",
+          "legendFormat": "2xx",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"4..\",handler!~\"/metrics|/health\"}[1m]))",
+          "legendFormat": "4xx",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\",handler!~\"/metrics|/health\"}[1m]))",
+          "legendFormat": "5xx",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "2xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "4xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "5xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "P95 Latency by Endpoint",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{handler!~\"/metrics|/health\"}[5m])) by (le, handler))",
+          "legendFormat": "{{handler}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request Rate by Endpoint (Top 5)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "topk(5, sum(rate(http_requests_total{handler!~\"/metrics|/health\"}[1m])) by (handler))",
+          "legendFormat": "{{handler}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Failures by Cause",
+      "description": "The breakdown of the Error Rate (5xx) stat above. Every exception in app/services/llm/exceptions.py carries status 503, so rate limit, timeout, streaming, fallback-exhausted and generic API errors are one indistinguishable series in http_requests_total; error_code is what separates them. UNHANDLED means nothing declared an error_code - the client got a generic 500 and this label is the only record of the cause outside the logs. Grouped by error_code rather than exception_type because the code is the stable contract; add exception_type to the grouping when chasing a specific UNHANDLED spike. Exceptions raised mid-SSE-stream are not counted: once the response has begun nothing propagates back to an exception handler.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_exceptions_total[5m])) by (error_code)",
+          "legendFormat": "{{error_code}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      }
+    }
+  ]
+}

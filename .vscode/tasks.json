@@ -1,0 +1,270 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ── Dev (app processes on the host; db still in Docker) ───────────────────
+    //
+    // The Dev chain and the Run chain are mutually exclusive. Compose publishes
+    // 3000 and 8100, and its `ngrok` service claims the same static domain as
+    // "Dev: Tunnel". Stop one before starting the other.
+    //
+    // "Dev: All" sequences prep before servers. Everything in the sequential
+    // leg must terminate — VS Code's "sequence" order waits for each task to
+    // exit, and a background task with an empty problemMatcher never reports
+    // completion — so all long-running processes live in the parallel group.
+    {
+      "label": "Dev: Preflight",
+      "detail": "Fail early if ports 8100 or 3000 are already taken",
+      "type": "shell",
+      "command": "make dev-preflight",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "silent", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Database",
+      "detail": "Start Postgres and wait for it to accept connections",
+      "type": "shell",
+      "command": "make docker-run-db ENV=development",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Migrate",
+      "detail": "Apply Alembic migrations from the host (development)",
+      "type": "shell",
+      "command": "make migrate ENV=development",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: API Server",
+      "detail": "Run FastAPI server locally with hot-reload (port 8100)",
+      "type": "shell",
+      "command": "make dev",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Web",
+      "detail": "Run web Next.js dev server (port 3000)",
+      "type": "shell",
+      "command": "pnpm dev:web",
+      "options": { "cwd": "${workspaceFolder}/web-app" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Tunnel",
+      "detail": "ngrok tunnel from the static domain to localhost:8100 (Clerk webhooks)",
+      "type": "shell",
+      "command": "make dev-tunnel",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Serve",
+      "detail": "API server + web app, no tunnel (2 terminals)",
+      "dependsOn": ["Dev: API Server", "Dev: Web"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Serve + Tunnel",
+      "detail": "API server + web app + ngrok tunnel (3 terminals)",
+      "dependsOn": [
+        "Dev: API Server",
+        "Dev: Web",
+        "Dev: Tunnel"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: All",
+      "detail": "Preflight, start db, migrate, then API server + web app",
+      "dependsOn": ["Dev: Preflight", "Dev: Database", "Dev: Migrate", "Dev: Serve"],
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: All + Tunnel",
+      "detail": "Dev: All, plus the ngrok tunnel — use when testing Clerk webhooks",
+      "dependsOn": [
+        "Dev: Preflight",
+        "Dev: Database",
+        "Dev: Migrate",
+        "Dev: Serve + Tunnel"
+      ],
+      "dependsOrder": "sequence",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Kill All",
+      "detail": "Kill any process on ports 8100, 3000, 4040 (ngrok inspector)",
+      "type": "shell",
+      "command": "for port in 8100 3000 4040; do pids=$(lsof -ti :$port -sTCP:LISTEN 2>/dev/null); if [ -n \"$pids\" ]; then echo \"Killing port $port (PIDs: $pids)\"; echo \"$pids\" | xargs kill -9; else echo \"Port $port: nothing running\"; fi; done; echo 'Done'",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Run ──────────────────────────────────────────────────────────────────
+    {
+      "label": "Run: Full Stack",
+      "detail": "Start all services (web app, server, db, prometheus, grafana, cadvisor)",
+      "type": "shell",
+      "command": "make docker-run",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run: Core",
+      "detail": "Start core services only (web app, server, db)",
+      "type": "shell",
+      "command": "make docker-run-core",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run: DB Only",
+      "detail": "Start database only (ENV=development)",
+      "type": "shell",
+      "command": "make docker-run-db ENV=${input:dbEnv}",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Stop / Clean ─────────────────────────────────────────────────────────
+    {
+      "label": "Stop: All Services",
+      "detail": "Stop all running Docker services",
+      "type": "shell",
+      "command": "make docker-stop",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean: Full",
+      "detail": "Stop services and remove containers, volumes, networks",
+      "type": "shell",
+      "command": "make clean",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Rebuild ───────────────────────────────────────────────────────────────
+    {
+      "label": "Rebuild: Full Stack",
+      "detail": "Clean + build + start full stack",
+      "type": "shell",
+      "command": "make rebuild",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Rebuild: Core",
+      "detail": "Clean + build + start core stack",
+      "type": "shell",
+      "command": "make rebuild-core",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Build ─────────────────────────────────────────────────────────────────
+    {
+      "label": "Build: All",
+      "detail": "Build all Docker images (web app + server)",
+      "type": "shell",
+      "command": "make docker-build",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: Web Apps",
+      "detail": "Build web image",
+      "type": "shell",
+      "command": "make docker-build-web",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: API Server",
+      "detail": "Build server image only",
+      "type": "shell",
+      "command": "make docker-build-api",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Contract ──────────────────────────────────────────────────────────────
+    //
+    // Run "Contract: Generate" after changing a route or a response schema, and
+    // commit its output alongside that change. Deliberately not part of the Dev
+    // chain: exporting the spec imports app.main, so a half-finished refactor
+    // would stop the dev servers from starting, and drift is the normal state
+    // while a route is being written. `make docker-build*` gates on the check
+    // instead, where an inconsistent artifact would actually ship.
+    {
+      "label": "Contract: Generate",
+      "detail": "Re-export openapi.json and regenerate the typed API client",
+      "type": "shell",
+      "command": "make gen-contract",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Contract: Check",
+      "detail": "Fail if openapi.json or the generated client is stale (the check CI runs)",
+      "type": "shell",
+      "command": "make check-contract",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ── Logs ──────────────────────────────────────────────────────────────────
+    {
+      "label": "Logs: All Services",
+      "detail": "Follow logs for all services",
+      "type": "shell",
+      "command": "make docker-logs",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Logs: Core Services",
+      "detail": "Follow logs for the web app, server, and db",
+      "type": "shell",
+      "command": "make docker-logs-core",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": [],
+      "isBackground": true
+    }
+  ],
+
+  "inputs": [
+    {
+      "id": "dbEnv",
+      "type": "pickString",
+      "description": "Select environment",
+      "options": ["development", "staging", "production"],
+      "default": "development"
+    }
+  ]
+}

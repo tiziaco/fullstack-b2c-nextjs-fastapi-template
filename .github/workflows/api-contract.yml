@@ -1,0 +1,60 @@
+name: API contract
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# The job only reads the repo and writes nothing back: it exports the spec,
+# regenerates the client, and diffs. No token scope beyond checkout is needed.
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # --group test pulls in pytest: the default sync only installs the base
+      # project dependencies, and the "Contract convention holds" step below
+      # needs pytest. This matches server/tests/README.md's own setup command.
+      - name: Sync Python dependencies
+        working-directory: server
+        run: uv sync --frozen --group test
+
+      # Pinned explicitly rather than inferred from packageManager. 11.21.0 is
+      # the pnpm used to verify locally that `pnpm install --frozen-lockfile`
+      # and `gen:api` both work against this repo's lockfileVersion 9.0
+      # pnpm-lock.yaml.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-app/pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        working-directory: web-app
+        run: pnpm install --frozen-lockfile
+
+      # No database, no .env, no secrets: the spec is built from registered
+      # routes via app.openapi().
+      - name: Contract artifacts are current
+        run: make check-contract
+
+      - name: Contract convention holds
+        working-directory: server
+        run: APP_ENV=test uv run pytest tests/unit/api/test_openapi_contract.py tests/unit/scripts/test_export_openapi.py -v
+
+      - name: Workspace type-checks
+        working-directory: web-app
+        run: pnpm -r exec tsc --noEmit

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Lint and format-check before anything leaves the machine.
+#
+# Runs `make check-server` when server/ changed and `make check-web` when
+# web-app/ changed, measured against the upstream branch (or every commit,
+# for a branch pushed the first time). Same install as the pre-commit hook:
+#     git config core.hooksPath .githooks
+#
+# Bypass a single push with `git push --no-verify`. There is no CI backstop
+# for these checks — this hook is the gate.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# What changed since the remote last saw this branch. Also count uncommitted
+# edits: the checks read the working tree, so a stale file fails the push
+# whether it is committed or not, and the message should say why.
+if BASE="$(git rev-parse --verify --quiet '@{upstream}')"; then
+  CHANGED="$(git diff --name-only "$BASE" HEAD; git diff --name-only HEAD)"
+else
+  CHANGED="$(git diff --name-only "$(git merge-base HEAD origin/main 2>/dev/null || git rev-list --max-parents=0 HEAD)" HEAD; git diff --name-only HEAD)"
+fi
+
+# A hook that blocks pushes because a tool is missing gets disabled wholesale.
+# Warn and let the push through instead.
+missing() {
+  echo "pre-push: $1 not found, skipping the $2 checks." >&2
+}
+
+if grep -qE '^server/' <<<"$CHANGED"; then
+  if command -v uv >/dev/null 2>&1; then
+    echo "pre-push: checking server/ ..." >&2
+    make -s check-server
+  else
+    missing uv server
+  fi
+fi
+
+if grep -qE '^web-app/' <<<"$CHANGED"; then
+  if command -v pnpm >/dev/null 2>&1 && [ -x web-app/node_modules/.bin/prettier ]; then
+    echo "pre-push: checking web-app/ ..." >&2
+    make -s check-web
+  else
+    missing "pnpm or web-app/node_modules" web-app
+  fi
+fi
+
+exit 0

@@ -1,0 +1,165 @@
+[project]
+name = "server"
+# Single source for the API's version: app/core/metadata.py reads it from here
+# and FastAPI serves it, so this is the number that appears in openapi.json and
+# in the status widget. Bumping it is a contract change — regenerate.
+version = "0.1.0"
+description = "A production-ready FastAPI service with LangGraph and Clerk authentication, for consumer applications."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.121.0",
+    "langchain>=1.0.5",
+    "langchain-core>=1.0.4",
+    "langchain-openai>=1.0.2",
+    "langfuse==3.9.1",
+    "langgraph>=1.0.2",
+    "langgraph-checkpoint-postgres>=3.0.1",
+    "pyjwt[crypto]>=2.9.0",
+    # >=7.0.0: app/integrations/clerk/client.py imports ClerkBaseError, the
+    # common base of ClerkErrors and SDKError. Verified present at 7.0.0; an
+    # older resolve would fail the import at startup.
+    "clerk-backend-api>=7.0.0",
+    "psycopg[binary]>=3.3.2",
+    "asyncpg>=0.30.0",
+    "pydantic[email]>=2.11.1",
+    "pydantic-settings>=2.8.1",
+    "python-dotenv>=1.1.0",
+    "python-multipart>=0.0.20",
+    "sqlmodel>=0.0.24",
+    "structlog>=25.2.0",
+    "uvicorn>=0.34.0",
+    "slowapi>=0.1.9",
+    "email-validator>=2.2.0",
+    "prometheus-client>=0.19.0",
+    "prometheus-fastapi-instrumentator>=8.1.0",
+    "asgiref>=3.8.1",
+    "duckduckgo-search>=3.9.0",
+    "ddgs>=9.10.0",
+    "langchain-community>=0.4.1",
+    "tenacity>=9.1.2",
+    "mem0ai>=1.0.0",
+    "uvloop>=0.22.1",
+    "greenlet>=3.1.1",
+    "asgi-correlation-id>=4.3.4",
+    "alembic>=1.18.3",
+    "svix>=2.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "djlint==1.36.4"]
+eval = ["colorama>=0.4.6", "tqdm>=4.67.1"]
+
+[dependency-groups]
+dev = [
+    "colorama>=0.4.6",
+]
+test = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.2",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+    "testcontainers>=4.15.0",
+]
+
+
+[tool.uv]
+# TEMPORARY HOLD — one left. Remove it in its own commit.
+#
+# openai sits under langchain-openai on every LLM call, a path the test suite
+# mocks, so a green run would not prove a bump working. It needs a manual
+# smoke against the real API before the ceiling moves:
+#
+#   openai <4   (3.7.0 in the lock; the 4.x major is what is held)
+#     The earlier <2.34 and <3 ceilings are both gone. LLMRegistry stores
+#     configuration and builds clients on first use, so importing app.main
+#     needs no key and `make check-contract` runs without secrets as CI
+#     expects; tests/unit/services/test_llm_service_import.py guards that.
+#
+# A constraint rather than an entry in [project.dependencies]: openai is a
+# transitive dependency, so this bounds it if something pulls it in without
+# claiming the project depends on it directly. It is a hold, not a statement
+# about what the project supports.
+constraint-dependencies = [
+    "openai<4",
+]
+
+[tool.app.metadata]
+# The service's public identity, and the one place a fork changes it.
+#
+# Deliberately here rather than in server/.env.<env>: these values land verbatim
+# in the `info` block of the committed artifact server/openapi.json, api_v1_str
+# prefixes every versioned key in its `paths`, and orval stamps the title into
+# the header of every generated client file. Read from a gitignored env file
+# they would differ per machine, and `make check-contract` would then fail on CI
+# and on every fresh clone — so the parameter could never actually be used.
+# pyproject.toml is committed, so every machine and CI read the same bytes.
+#
+# The version lives in [project] above, not here, so there is one of it.
+#
+# Change any of these, then run `make gen-contract` from the repo root and
+# commit the regenerated artifacts in the same commit.
+title = "B2C Template - Server"
+description = "A production-ready FastAPI service with LangGraph and Clerk authentication, for consumer applications."
+api_v1_str = "/api/v1"
+
+[tool.pytest.ini_options]
+# Test discovery
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+    "asyncio: marks tests as async tests",
+]
+
+# Async configuration
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# Coverage options
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",  # Show extra test summary info for all except passed
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=0",  # Set to desired coverage % (e.g., 80)
+]
+
+# Disable warnings
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 119
+exclude = ["migrations", "*.ipynb", "venv"]
+
+[tool.ruff.lint]
+# Bugbear (`B`), import order (`I`) and docstring (`D`) rules on top of the defaults.
+select = ["E", "F", "I", "B", "ERA", "D"]
+# Never enforce `E501` (line length violations).
+ignore = ["E501", "F401", "D107", "D203", "D213", "B904", "B008"]
+# Avoid trying to fix flake8-bugbear (`B`) violations.
+unfixable = ["B"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+# Both must load dotenv before importing `app`.
+"alembic/env.py" = ["E402"]
+"tests/conftest.py" = ["E402"]
+# Test names are the documentation.
+"tests/**" = ["D"]

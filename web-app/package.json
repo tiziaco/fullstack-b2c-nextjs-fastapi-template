@@ -1,0 +1,20 @@
+{
+  "name": "web-app",
+  "private": true,
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter \"./apps/*\" build",
+    "type-check": "pnpm -r exec tsc --noEmit",
+    "lint": "pnpm -r --if-present lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}

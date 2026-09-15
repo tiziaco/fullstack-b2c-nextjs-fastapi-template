@@ -1,0 +1,86 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Environment files - these will be passed as build args
+.env*
+.env.example
+
+# Python
+# `__pycache__/` alone only matches at the context root — .dockerignore uses
+# filepath.Match, so nested dirs need the ** prefix.
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+pytestdebug.log
+*.egg-info/
+*.ipynb
+
+# Virtual environments
+.venv
+venv
+ENV/
+env/
+
+# Development tools
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.dev.yml
+
+# Documentation
+docs/
+README.md
+AGENTS.md
+*.md
+
+# Database and config files
+schema.sql
+
+# Scripts not needed in container.
+# The Dockerfile copies scripts/ wholesale, so this denylist is what keeps
+# host-only scripts out of the image — add new ones here.
+# Container scripts (docker-entrypoint.sh, migrate.sh) are intentionally absent.
+scripts/build-docker.sh
+scripts/logs-docker.sh
+scripts/run-docker.sh
+scripts/stop-docker.sh
+scripts/set_env.sh
+scripts/ensure-db-user.sh
+
+# Build artifacts
+Makefile
+*.md
+
+# Build artifacts
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+
+# other
+schema.sql
+
+# Reports
+evals/reports/

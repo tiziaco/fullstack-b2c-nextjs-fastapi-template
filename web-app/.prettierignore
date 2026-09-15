@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+pnpm-lock.yaml
+tsconfig.tsbuildinfo
+next-env.d.ts
+# Orval formats the generated client with this same config; check-contract owns its drift.
+packages/api-client/src/generated
+# Docs are hand-laid-out; Prettier only re-pads their tables.
+*.md

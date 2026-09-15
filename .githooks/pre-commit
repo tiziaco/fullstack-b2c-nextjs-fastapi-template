@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Keep the contract artifacts in the same commit as the route change.
+#
+# server/openapi.json and web-app/packages/api-client/src/generated are derived
+# from server/app/. Commit a route change without them and the frontend
+# compiles against a contract the backend no longer serves — nothing fails
+# until runtime, and CI only says so after the push.
+#
+# Install once per clone:
+#     git config core.hooksPath .githooks
+#
+# Bypass a single commit with `git commit --no-verify` (a WIP commit on a
+# branch you will squash, say). CI still enforces the same check.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+ARTIFACTS=(server/openapi.json web-app/packages/api-client/src/generated)
+
+# Nothing to check unless this commit touches the code the artifacts derive
+# from. Keeps every unrelated commit free of the ~6s regeneration.
+if ! git diff --cached --name-only | grep -qE '^server/app/'; then
+  exit 0
+fi
+
+# A hook that blocks commits because a tool is missing gets disabled wholesale,
+# so degrade to a warning instead. CI remains the backstop.
+for tool in uv pnpm; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "pre-commit: $tool not found, skipping the contract check." >&2
+    exit 0
+  fi
+done
+
+# Same reasoning one level down: pnpm being installed does not mean orval is.
+# On a clone where only the server was set up, gen-contract.sh would fail on the
+# missing binary and `set -e` would block every commit touching server/app/ with
+# an opaque pnpm error.
+# Probe the binary itself, not web-app/node_modules: orval is a devDependency of
+# packages/api-client, so a filtered or interrupted install can leave the root
+# directory in place with no orval under it.
+if [ ! -x web-app/packages/api-client/node_modules/.bin/orval ]; then
+  echo "pre-commit: orval missing (run pnpm install in web-app/), skipping the contract check." >&2
+  exit 0
+fi
+
+./scripts/gen-contract.sh >/dev/null
+
+# Compare the working tree against the INDEX, not against HEAD: staging the
+# correctly regenerated artifacts must pass. `git status --porcelain` would
+# report those staged files and fail the very commit that got it right.
+# Untracked files are checked separately — a new tag produces new files, which
+# `git diff` does not see.
+UNSTAGED="$(git diff --name-only -- "${ARTIFACTS[@]}")"
+UNTRACKED="$(git ls-files --others --exclude-standard -- "${ARTIFACTS[@]}")"
+
+if [ -n "${UNSTAGED}${UNTRACKED}" ]; then
+  echo >&2
+  echo "pre-commit: this commit changes server/app/ but not the artifacts it" >&2
+  echo "produces. They have been regenerated for you:" >&2
+  echo >&2
+  printf '  %s\n' ${UNSTAGED} ${UNTRACKED} >&2
+  echo >&2
+  echo "Review the diff, 'git add' them, and commit again." >&2
+  echo "An operation_id rename is a renamed frontend hook — read it before staging." >&2
+  exit 1
+fi
+
+exit 0

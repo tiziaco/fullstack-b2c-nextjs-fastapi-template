@@ -1,0 +1,324 @@
+{
+  "id": null,
+  "uid": "llm-latency",
+  "title": "LLM & Agent Tools",
+  "tags": ["inference", "latency", "agent", "tools"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 6,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Avg Inference Latency",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_inference_duration_seconds_sum[5m])) / sum(rate(llm_inference_duration_seconds_count[5m]))",
+          "legendFormat": "avg",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Avg Stream Latency",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_stream_duration_seconds_sum[5m])) / sum(rate(llm_stream_duration_seconds_count[5m]))",
+          "legendFormat": "avg stream",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no data",
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 8 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Inference Request Rate",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_inference_duration_seconds_count[1m])) + sum(rate(llm_stream_duration_seconds_count[1m]))",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM Inference Duration (p95 vs avg)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(llm_inference_duration_seconds_bucket[5m])) by (le, model))",
+          "legendFormat": "{{model}} p95",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(llm_inference_duration_seconds_sum[5m])) by (model) / sum(rate(llm_inference_duration_seconds_count[5m])) by (model)",
+          "legendFormat": "{{model}} avg",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM Stream Duration (p95 vs avg)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(llm_stream_duration_seconds_bucket[5m])) by (le, model))",
+          "legendFormat": "{{model}} p95",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(llm_stream_duration_seconds_sum[5m])) by (model) / sum(rate(llm_stream_duration_seconds_count[5m])) by (model)",
+          "legendFormat": "{{model}} avg",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM Request Rate",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_inference_duration_seconds_count[1m])) by (model)",
+          "legendFormat": "{{model}} (chat)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(llm_stream_duration_seconds_count[1m])) by (model)",
+          "legendFormat": "{{model}} (stream)",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Agent Tools",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Tool Call Rate",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 21, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(tool_calls_total[1m]))",
+          "legendFormat": "calls/s",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "noValue": "0"
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Tool Error Ratio",
+      "description": "Share of tool calls that did not succeed. outcome!=\"success\" rather than outcome=\"error\", so a hallucinated tool name (unknown_tool) counts as the failure it is. The `> 0` on the denominator turns a window with no tool calls into an empty vector rather than NaN, which noValue then renders as 0 - so a silent agent and a healthy one read alike here; the Tool Call Rate panel beside it tells them apart.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 8, "y": 21, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "100 * (sum(rate(tool_calls_total{outcome!=\"success\"}[5m])) or vector(0)) / (sum(rate(tool_calls_total[5m])) > 0)",
+          "legendFormat": "error %",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Tool P95 Latency",
+      "description": "No noValue on purpose: with no tool calls in the window, \"No data\" is the honest reading for a latency figure, where a fabricated 0s is not. The `and (... count > 0)` guard is what produces it: histogram_quantile over all-zero bucket rates returns NaN, which a stat panel renders literally as NaN - the guard drops the sample instead. Thresholds are calibrated against observed DuckDuckGo latency (avg ~3s, p95 ~4.9s); 2s would sit amber permanently.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 16, "y": 21, "w": 8, "h": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(tool_call_duration_seconds_bucket[5m])) by (le)) and (sum(rate(tool_call_duration_seconds_count[5m])) > 0)",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool Call Rate by Tool & Outcome",
+      "description": "Successes and failures as separate series rather than a ratio: no division, so nothing blanks out when one outcome has never occurred.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 25, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(tool_calls_total[1m])) by (tool, outcome)",
+          "legendFormat": "{{tool}} {{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool Duration (p95 vs avg)",
+      "description": "tool_call_duration_seconds carries no outcome label, so a fast-failing tool pulls p95 down. Read failures off Tool Error Ratio, not off this panel.",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 12, "y": 25, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(tool_call_duration_seconds_bucket[5m])) by (le, tool))",
+          "legendFormat": "{{tool}} p95",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(tool_call_duration_seconds_sum[5m])) by (tool) / sum(rate(tool_call_duration_seconds_count[5m])) by (tool)",
+          "legendFormat": "{{tool}} avg",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    }
+  ]
+}

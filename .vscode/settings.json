@@ -1,0 +1,19 @@
+{
+  // Keep the tree formatted as you type; the pre-push hook then rarely fires.
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": { "source.organizeImports.ruff": "explicit" }
+  },
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "prettier.configPath": "web-app/.prettierrc",
+  "prettier.ignorePath": "web-app/.prettierignore",
+  "eslint.workingDirectories": [
+    "web-app/apps/web",
+    "web-app/packages/ui",
+    "web-app/packages/auth"
+  ]
+}
