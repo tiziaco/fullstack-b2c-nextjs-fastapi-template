@@ -1,0 +1,38 @@
+{
+  "auth_access_control": {
+    "sign_up_mode": "public"
+  },
+  "auth_email": {
+    "required_for_sign_up": true,
+    "sign_in_strategies": [],
+    "used_for_sign_in": true,
+    "used_for_sign_up": true,
+    "verification_strategies": [
+      "email_code"
+    ]
+  },
+  "auth_multi_factor": {
+    "authenticator_app": {
+      "enabled": false
+    },
+    "backup_code": {
+      "enabled": false
+    },
+    "required_for_sign_in": false,
+    "required_for_sign_up": false
+  },
+  "auth_password": {
+    "device_trust": {
+      "enabled": false
+    },
+    "disable_hibp": true,
+    "enabled": true,
+    "enforce_hibp_on_sign_in": false,
+    "min_length": 8
+  },
+  "session": {
+    "claims": {
+      "role": "{{user.public_metadata.role}}"
+    }
+  }
+}

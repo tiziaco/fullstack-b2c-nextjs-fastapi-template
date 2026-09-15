@@ -175,6 +175,13 @@ cp web-app/apps/web/.env.example web-app/apps/web/.env.local
 
 Required secrets: Clerk API keys, database credentials, OpenAI key, Langfuse key.
 
+The Clerk values are scripted rather than copied by hand — `make clerk-bootstrap-env`
+creates the application and fills them into all three files (creating any that are still
+missing), then `make clerk-apply-config` and `make clerk-seed-users` configure the instance
+and create two dev users. See [`docs/setup/clerk.md`](docs/setup/clerk.md); the tooling lives
+in `scripts/clerk/`, and `make clerk-check-config` guards the committed instance baseline
+against dashboard drift.
+
 The `server/.env.<ENV>` file is selected by the `APP_ENV` variable (default: `development`).
 
 Install the repo's git hooks once per clone:

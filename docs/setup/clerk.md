@@ -7,6 +7,20 @@ Do this first. Then [`clerk-webhooks.md`](./clerk-webhooks.md) for event deliver
 For how the code consumes the token once it arrives, see
 [`../../server/docs/authentication.md`](../../server/docs/authentication.md).
 
+**Most of this is scripted.** With the [Clerk CLI](https://clerk.com/docs/cli) installed
+and `clerk auth login` done once:
+
+```bash
+make clerk-bootstrap-env    # create the app, write keys to all three env files
+make clerk-apply-config     # §1's role claim, §2's sign-in settings
+make clerk-seed-users       # two dev users, pre-verified, ready to sign in
+```
+
+Three things those commands do **not** do, each explained where it comes up below:
+`ALLOWED_ORIGINS` (§4), the Swagger OAuth app (§5), and the webhook signing secret (§6).
+The dashboard walkthrough in each section remains correct — read it when you want to know
+what the scripts are doing, or when you are configuring an instance by hand.
+
 Clerk is the only identity provider wired in. There is no local password store and no
 login endpoint to build. **This template does not use Clerk Organizations** — the
 platform role is a plain user attribute, not a tenant membership.
@@ -27,7 +41,20 @@ platform role is a plain user attribute, not a tenant membership.
 
 ## 1. Set the platform role on your users
 
-**Dashboard → Users → select a user → Metadata → Public.** Add:
+```bash
+make clerk-seed-users
+```
+
+Creates the users in [`scripts/clerk/dev-users.json`](../../scripts/clerk/dev-users.json) —
+two of them, one per role — with the role already on `publicMetadata`. Users created through
+the Backend API have their email addresses verified on creation and carry the password from
+that file, so there is no verification code to collect and nothing to click. Re-running is a
+no-op; a role changed in the roster is merged on the next run.
+
+That file is committed on purpose. The emails are fake, the passwords are throwaway, and the
+script refuses to run against anything but a development instance.
+
+**By hand:** Dashboard → Users → select a user → Metadata → Public. Add:
 
 ```json
 { "role": "user" }
@@ -36,11 +63,30 @@ platform role is a plain user attribute, not a tenant membership.
 or `"admin"` for a platform administrator. These are the only two values
 `server/app/models/enums.py` and `web-app/packages/auth/src/permissions.ts` recognise.
 
+> Seeded users still get 401s until `ALLOWED_ORIGINS` (§4) lists the web app's origin.
+> Nothing in the scripted path sets it.
+
 ---
 
 ## 2. Customize the session token to carry the role claim
 
-**Dashboard → Sessions → Customize session token.** Add:
+```bash
+make clerk-apply-config
+```
+
+Applies [`scripts/clerk/config.json`](../../scripts/clerk/config.json), the committed copy
+of the instance's settings. It holds the claim below, and alongside it the settings that let
+a seeded user actually sign in: password authentication on, the second-factor device-trust
+challenge off, and — the one that catches people — the Have I Been Pwned check off **at
+sign-in**. Creating a user with a weak password bypasses HIBP, but signing in as them does
+not, so without that line a seeded account exists and cannot log in.
+
+`make clerk-check-config` re-pulls the instance and fails if someone has changed it in the
+dashboard, so the file stays truthful. One blind spot, by design: the API never returns the
+session block, so drift in this claim specifically cannot be detected — re-apply if you
+suspect it.
+
+**By hand:** Dashboard → Sessions → Customize session token. Add:
 
 ```json
 { "role": "{{user.public_metadata.role}}" }
@@ -67,7 +113,22 @@ bug, not a missing-configuration problem — see the symptom table at the end.
 
 ## 3. Keys
 
-**Dashboard → API keys.**
+```bash
+make clerk-bootstrap-env
+```
+
+Creates the application (named by `CLERK_APP_NAME`, default `B2C Template Dev`) and writes
+every value in the two tables below except the OAuth trio and the webhook secret. It fills in
+all three env files, creating any that are missing from their `.env.example`, and leaves
+unrelated keys alone.
+
+`CLERK_ISSUER` is not something the CLI hands you — it is derived. A publishable key is
+base64 of the frontend-API host, so the issuer falls out of the key itself.
+
+The script also writes `CLERK_APP_ID` to the root `.env`; every other `clerk-*` target reads
+it from there.
+
+**By hand:** Dashboard → API keys.
 
 Server — `server/.env.<environment>`:
 
@@ -163,6 +224,12 @@ OAuth access tokens carry no `azp` at all — they are authorised by `client_id`
 
 User events (JIT provisioning, offboarding) arrive by webhook. Full procedure, including
 the ngrok tunnel for local delivery: [`clerk-webhooks.md`](./clerk-webhooks.md).
+
+**This step cannot be scripted.** `CLERK_WEBHOOK_SIGNING_SECRET` is generated with the
+endpoint, and no API creates one: the Backend API offers only `POST /webhooks/svix` (create
+the Svix app) and `POST /webhooks/svix_url` (mint a dashboard URL), neither of which
+registers an endpoint at a URL or returns its `whsec_`. Creating the endpoint and copying
+its secret stays a dashboard visit.
 
 ---
 
