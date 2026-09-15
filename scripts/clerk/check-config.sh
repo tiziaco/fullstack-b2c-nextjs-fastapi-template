@@ -51,9 +51,13 @@ case "$STATUS" in
   *)
     echo
     echo "FAIL: the live Clerk instance no longer matches the committed baseline."
-    echo "Someone changed it in the dashboard. Either re-apply the baseline with"
-    echo "'make clerk-apply-config', or keep the dashboard change by committing"
-    echo "the diff below."
+    echo "Someone changed it in the dashboard. Pick one:"
+    echo
+    echo "  Keep the committed values — restore the file first, because the pull"
+    echo "  above already overwrote it with the instance's values:"
+    echo "    git checkout -- $BASELINE && make clerk-apply-config"
+    echo
+    echo "  Keep the dashboard change — commit the diff below as the new baseline."
     echo
     # Against HEAD rather than the index, so a baseline that was staged but not
     # committed still shows its change instead of an empty diff.
