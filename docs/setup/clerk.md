@@ -163,14 +163,22 @@ The web app — `web-app/apps/web/.env.local`:
 | `CLERK_SECRET_KEY` | same secret key |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | `/home` |
-| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | `/home` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/home` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/home` |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8100` in dev |
 
 None of these are read by application code. The Clerk SDK picks them up from the
 environment itself — `mergeNextClerkPropsWithEnv` in `@clerk/nextjs` maps each one onto
 a `<ClerkProvider>` prop — which is why grepping the repo for them finds only config
 files and docs.
+
+> The two redirect variables were named `…_AFTER_SIGN_IN_URL` / `…_AFTER_SIGN_UP_URL`
+> before. Those map to props `@clerk/nextjs` v6 deprecated, and the deprecation is not
+> cosmetic: a `?redirect_url=` on the sign-in URL — present after a sign-out, or when
+> middleware bounces someone off a protected route — takes priority and the legacy prop
+> is ignored outright, so the user silently lands somewhere other than `/home`.
+> `FALLBACK` rather than `FORCE` is deliberate: it keeps "send them back where they were
+> heading" and only falls back to `/home`.
 
 > **The `NEXT_PUBLIC_*` values are baked in at image build time**, not read at runtime —
 > Next.js inlines them. Changing one means rebuilding.
