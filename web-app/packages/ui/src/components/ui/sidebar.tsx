@@ -538,7 +538,11 @@ function SidebarMenuButton({
       },
       props,
     ),
-    render: !tooltip ? render : TooltipTrigger,
+    // An element, never the bare component: Base UI calls a function-valued
+    // `render` as a plain function during reconciliation, which would run the
+    // trigger's hooks outside a fiber. Nesting the caller's own `render` inside
+    // is Base UI's composition idiom, and keeps it from being dropped here.
+    render: !tooltip ? render : <TooltipTrigger render={render} />,
     state: {
       slot: "sidebar-menu-button",
       sidebar: "menu-button",

@@ -21,7 +21,9 @@ export function ClerkUserPanel() {
             }
           : null
       }
-      onSignOut={() => signOut()}
+      // Sign out straight to /sign-in. The default lands on `/`, which
+      // middleware then bounces twice to reach the same place.
+      onSignOut={() => signOut({ redirectUrl: "/sign-in" })}
       onOpenProfile={() => openUserProfile()}
     />
   )

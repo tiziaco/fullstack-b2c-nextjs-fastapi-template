@@ -1,4 +1,4 @@
-.PHONY: help dev-preflight dev-tunnel check check-server check-web gen-contract check-contract deploy-check docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
+.PHONY: help dev-preflight dev-tunnel check check-server check-web gen-contract check-contract deploy-check clerk-bootstrap-env clerk-pull-config clerk-apply-config clerk-check-config clerk-seed-users docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
 
 DOCKER_COMPOSE ?= docker-compose
 COMPOSE_FILE ?= docker-compose.dev.yml
@@ -14,6 +14,9 @@ API_HOST_PORT ?= 8100
 ENV ?= development
 # Which server/.env.<env> `make deploy-check` runs the deploy stack against.
 DEPLOY_ENV ?= staging
+# Name for the Clerk application `make clerk-bootstrap-env` creates. Its id lands
+# in the root .env as CLERK_APP_ID, which every other clerk-* target reads.
+CLERK_APP_NAME ?= B2C Template Dev
 
 # Load root .env (APP_ENV, GRAFANA_ADMIN_PASSWORD, …) so Docker Compose picks
 # them up even when --env-file points to a service-specific file. Optional:
@@ -40,6 +43,13 @@ help:
 	@echo "  make gen-contract       - Re-export openapi.json and regenerate the typed API client"
 	@echo "  make check-contract     - Fail if openapi.json or the generated client is stale"
 	@echo "  make deploy-check       - Verify docker-compose.prod.yml builds and runs (DEPLOY_ENV=staging)"
+	@echo ""
+	@echo "Clerk (development instance only — needs network and a Clerk login):"
+	@echo "  make clerk-bootstrap-env  - Create the app and write its keys to the three env files"
+	@echo "  make clerk-apply-config   - Apply scripts/clerk/config.json to the instance"
+	@echo "  make clerk-check-config   - Fail if the instance has drifted from the committed baseline"
+	@echo "  make clerk-pull-config    - Refresh the baseline from the instance"
+	@echo "  make clerk-seed-users     - Create the dev users in scripts/clerk/dev-users.json"
 	@echo ""
 	@echo "Build Commands:"
 	@echo "  make docker-build       - Build all services (web-app, server)"
@@ -129,6 +139,26 @@ gen-contract:
 
 check-contract:
 	@./scripts/check-contract.sh
+
+# Clerk instance setup and dev-user seeding, against the development instance only.
+# Unlike check-contract, these need the network and a `clerk auth login`, so none of
+# them is wired into `make check` or either git hook — they cannot run on a fresh
+# clone, in CI, or offline. CLERK_APP_ID comes from the root .env via the -include
+# above; clerk-bootstrap-env is what puts it there.
+clerk-bootstrap-env:
+	@CLERK_APP_NAME="$(CLERK_APP_NAME)" ./scripts/clerk/bootstrap-env.sh
+
+clerk-pull-config:
+	@./scripts/clerk/pull-config.sh
+
+clerk-apply-config:
+	@./scripts/clerk/apply-config.sh
+
+clerk-check-config:
+	@./scripts/clerk/check-config.sh
+
+clerk-seed-users:
+	@./scripts/clerk/seed-users.sh
 
 # Verify the deploy compose file without a deployment target. Runs under its
 # own compose project so a running dev stack is untouched, and tears itself
