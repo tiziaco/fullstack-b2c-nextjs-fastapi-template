@@ -8,7 +8,7 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarMenuItem,
-} from "../ui/sidebar"
+} from "../../primitives/sidebar"
 import { MenuNavigator } from "./nav-sidebar"
 import { CompanyLogo } from "./company-logo"
 import type { NavItem } from "@app/core/types/nav"

@@ -1,7 +1,7 @@
 "use client"
 
 import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "../../primitives/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +10,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu"
-import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar"
-import { Skeleton } from "../ui/skeleton"
+} from "../../primitives/dropdown-menu"
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "../../primitives/sidebar"
+import { Skeleton } from "../../primitives/skeleton"
 
 export interface UserPanelUser {
   name: string

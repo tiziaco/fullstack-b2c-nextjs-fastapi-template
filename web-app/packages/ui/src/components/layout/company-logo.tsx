@@ -1,7 +1,11 @@
 "use client"
 
 import Image from "next/image"
-import { SidebarMenu, SidebarMenuItem, useSidebar } from "../ui/sidebar"
+import {
+  SidebarMenu,
+  SidebarMenuItem,
+  useSidebar,
+} from "../../primitives/sidebar"
 
 interface CompanyLogoProps {
   src: string

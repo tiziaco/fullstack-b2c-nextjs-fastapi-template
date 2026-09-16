@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Collapsible, CollapsibleContent } from "../ui/collapsible"
+import { Collapsible, CollapsibleContent } from "../../primitives/collapsible"
 import {
   SidebarGroup,
   SidebarMenu,
@@ -11,7 +11,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "../ui/sidebar"
+} from "../../primitives/sidebar"
 import type { NavItem } from "@app/core/types/nav"
 
 export function MenuNavigator({ items }: { items: NavItem[] }) {

@@ -16,11 +16,11 @@ export {
   CardDescription,
   CardContent,
   CardAction,
-} from "./components/ui/card"
-export { Input } from "./components/ui/input"
-export { Button, buttonVariants } from "./components/ui/button"
-export { Separator } from "./components/ui/separator"
-export { Skeleton } from "./components/ui/skeleton"
+} from "./primitives/card"
+export { Input } from "./primitives/input"
+export { Button, buttonVariants } from "./primitives/button"
+export { Separator } from "./primitives/separator"
+export { Skeleton } from "./primitives/skeleton"
 export {
   Sheet,
   SheetClose,
@@ -30,13 +30,13 @@ export {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "./components/ui/sheet"
+} from "./primitives/sheet"
 export {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./components/ui/tooltip"
+} from "./primitives/tooltip"
 export {
   Dialog,
   DialogClose,
@@ -48,8 +48,8 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
-} from "./components/ui/dialog"
-export { Label } from "./components/ui/label"
+} from "./primitives/dialog"
+export { Label } from "./primitives/label"
 export {
   Select,
   SelectContent,
@@ -61,20 +61,21 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "./components/ui/select"
+} from "./primitives/select"
 export {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "./components/ui/hover-card"
-export { Badge, badgeVariants } from "./components/ui/badge"
+} from "./primitives/hover-card"
+export { Badge, badgeVariants } from "./primitives/badge"
 export {
   Avatar,
   AvatarFallback,
   AvatarImage,
   AvatarGroup,
   AvatarGroupCount,
-} from "./components/ui/avatar"
+  AvatarBadge,
+} from "./primitives/avatar"
 export {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -91,13 +92,13 @@ export {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "./components/ui/dropdown-menu"
+} from "./primitives/dropdown-menu"
 export {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "./components/ui/collapsible"
-export { SettingSection } from "./components/ui/setting-section"
+} from "./primitives/collapsible"
+export { SettingSection } from "./primitives/setting-section"
 export {
   Sidebar,
   SidebarContent,
@@ -110,6 +111,7 @@ export {
   SidebarInput,
   SidebarInset,
   SidebarMenu,
+  SidebarFooterMenu,
   SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -123,9 +125,9 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-} from "./components/ui/sidebar"
-export { Toaster } from "./components/ui/sonner"
-export { ThemeProvider } from "./components/ui/theme-provider"
+} from "./primitives/sidebar"
+export { Toaster } from "./primitives/sonner"
+export { ThemeProvider } from "./primitives/theme-provider"
 
 // Layout
 export { AppSidebar } from "./components/layout/app-sidebar"
