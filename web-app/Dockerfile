@@ -13,6 +13,8 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 # Copy package manifests for all workspace packages (for layer caching)
 COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/auth/package.json ./packages/auth/
+COPY packages/components/package.json ./packages/components/
+COPY packages/core/package.json ./packages/core/
 COPY packages/ui/package.json ./packages/ui/
 
 # Copy app manifests
@@ -33,6 +35,17 @@ RUN corepack enable pnpm
 COPY --from=deps /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# pnpm installs each workspace project's dependencies into that project's own
+# node_modules, and the root holds almost nothing. Without these the builder
+# resolves nothing for the packages: @app/ui would have no @base-ui/react,
+# @app/core no clsx. Nothing in CI builds this image, so a miss here surfaces
+# only on a real deploy.
+COPY --from=deps /app/packages/api-client/node_modules ./packages/api-client/node_modules
+COPY --from=deps /app/packages/auth/node_modules ./packages/auth/node_modules
+COPY --from=deps /app/packages/components/node_modules ./packages/components/node_modules
+COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 # Copy shared packages source
 COPY packages ./packages
