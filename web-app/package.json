@@ -6,6 +6,8 @@
     "dev:web": "pnpm --filter web dev",
     "build": "pnpm --filter \"./apps/*\" build",
     "type-check": "pnpm -r exec tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "pnpm -r --if-present lint",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -15,6 +17,15 @@
     "pnpm": ">=9"
   },
   "devDependencies": {
-    "prettier": "3.9.6"
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.0.1",
+    "prettier": "3.9.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "vitest": "^5.0.1"
   }
 }
