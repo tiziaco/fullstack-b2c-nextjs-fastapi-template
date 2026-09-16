@@ -20,4 +20,5 @@ Service-level docs live next to their code:
 
 - [`../server/docs/authentication.md`](../server/docs/authentication.md) — how the server verifies a token and provisions a user
 - [`../server/docs/gdpr-compliance-guide.md`](../server/docs/gdpr-compliance-guide.md) and [`gdpr-erasure-findings.md`](../server/docs/gdpr-erasure-findings.md)
+- [`../web-app/docs/bugs.md`](../web-app/docs/bugs.md) — known-broken web behaviour, with repro steps and what fixing it involves
 - [`../CLAUDE.md`](../CLAUDE.md), [`../server/CLAUDE.md`](../server/CLAUDE.md), [`../web-app/CLAUDE.md`](../web-app/CLAUDE.md) — working conventions, and the most detailed operational notes in the repo

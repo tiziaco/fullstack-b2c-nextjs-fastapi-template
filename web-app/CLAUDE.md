@@ -65,6 +65,8 @@ pnpm dev:web                # web → http://localhost:3000
 
 pnpm build                 # build all apps
 pnpm type-check            # TypeScript check across workspace
+pnpm test                  # Vitest, once (also `make test-web` from the repo root)
+pnpm test:watch            # Vitest in watch mode
 ```
 
 Env file must exist before starting:
@@ -85,6 +87,88 @@ pnpm format:check    # what the root pre-push hook runs
 
 Prettier ignores Markdown and the generated client; orval formats the latter
 through the same config, so `make gen-contract` and `pnpm format` agree.
+
+---
+
+## Testing
+
+Vitest + Testing Library, in jsdom. One config at the workspace root
+(`vitest.config.mts`) covers every package; `vitest.setup.ts` holds the global stubs.
+Nothing gates on the suite yet — no CI step, no pre-push hook — so run it yourself:
+`pnpm test`, or `make test-web` from the repo root.
+
+**Tests are co-located with their subjects.** `nav-sidebar.test.tsx` sits next to
+`nav-sidebar.tsx`.
+
+```
+packages/components/src/layout/nav-sidebar.tsx
+packages/components/src/layout/nav-sidebar.test.tsx
+```
+
+This deliberately diverges from `server/tests/`, which mirrors `app/` in a parallel tree.
+The reason is that files move between packages here routinely — `SettingsDialog` was
+promoted from `apps/web` into `packages/components` — and a co-located test rides along
+with `git mv`, while a parallel tree has to be remembered. The one time it is not, you get
+an orphaned test importing a path that no longer exists. Python's `tests/` convention
+exists partly for packaging reasons that do not apply to workspace-internal TypeScript.
+
+One consequence worth knowing: `@app/components` exports `"./*": "./src/*.tsx"`, so a
+co-located test is nominally importable as `@app/components/layout/nav-sidebar.test`.
+Harmless — the package is `private: true` and never builds — but it is real.
+
+**`*.test.*` is Vitest. `*.spec.*` is Playwright.** Vitest's default `include` matches
+both, so `vitest.config.mts` pins it to `.test.` only. E2E specs will live in a top-level
+`e2e/` directory (they have no package to co-locate with, since their subject is the
+running stack) and must never be run by Vitest — they need a live server and a database.
+
+### Does a component earn a test?
+
+Ask whether it has a **branch** or is a pass-through. Everything in
+`packages/ui/src/primitives/` is vendored shadcn — testing it tests Base UI. Most chrome
+just forwards props. What earns a test is conditional rendering, state, or a mapping:
+`MenuNavigator`'s active-route match, `SettingsDialog`'s tab state and `footerSlot`,
+`ServerHealthIndicator`'s status colours, `ClerkUserPanel`'s user mapping.
+
+### Three traps specific to this workspace
+
+1. **A sidebar component needs a `SidebarProvider` wrapper, not just a render.**
+   `SidebarMenuButton` calls `useSidebar()`, which throws outside a provider, and
+   `MenuNavigator` and `SettingsDialog` both render one. `SidebarProvider` then calls
+   `useIsMobile()` → `window.matchMedia`, which jsdom does not implement — hence the stub
+   in `vitest.setup.ts`. The wrapper is inlined per test file on purpose; when a third
+   file needs it, promote it to an `@app/test-utils` workspace package rather than
+   inventing a path alias, which would mean editing six standalone tsconfigs.
+
+2. **`isDevelopment` is computed once at module load** from `process.env.NODE_ENV`
+   (`apps/web/src/lib/env-helpers.ts`). Under Vitest it is `false`, so
+   `ServerHealthIndicator` silently takes the production path and its whole HoverCard
+   branch never renders — the naive test passes while covering half the component.
+   Reassigning `process.env.NODE_ENV` mid-test does nothing. Mock the module, with a
+   getter if one file needs both sides of the branch (see `server-status.test.tsx`).
+
+3. **Test files are type-checked** by `pnpm type-check`, like any other source. Two
+   consequences: a `.catch((e) => e)` typed `unknown` fails the build, and jest-dom's
+   matchers need `src/testing.d.ts` in each package that uses them — `vitest.setup.ts`
+   belongs to no package's tsconfig, so its augmentation does not reach them.
+
+`vitest.config.mts` forces `NODE_ENV=test` before anything reads it. Do not remove that
+line. Vitest only defaults `NODE_ENV` when it is unset, so any caller exporting it decides
+how React builds — and the root Makefile `-include`s and exports `apps/web/.env.local`
+wholesale. With `NODE_ENV=production` React loads its production build and every render
+test fails with an error that points nowhere near the cause.
+
+Related: **do not put `NODE_ENV` in an env file.** Next assigns it per command
+(`next dev` → development, `next build` → production) and `@next/env` refuses to override
+a variable already present in `process.env`, so the entry is inert for Next and only leaks
+into whatever else reads the file. `.env.example` shipped `NODE_ENV=production` for exactly
+this reason and it has been removed.
+
+New test files are checked by Prettier (`semi: false`) and, in `apps/web`, `packages/ui`,
+`packages/components` and `packages/auth`, by ESLint.
+
+Some tests pin behaviour that is **known to be wrong**, so that a fix is what makes them
+change. Those are recorded in [`docs/bugs.md`](./docs/bugs.md); a test asserting a bug
+names the entry in a comment.
 
 ## Skills to Use
 
@@ -301,3 +385,6 @@ toast.error(String(error.body))
 - Hand-writing a type for a request or response body — import it from `@app/api-client/types`
 - Changing a server route without running `make gen-contract` in the same commit
 - Rendering `error.message` or `error.body` — map `error.status` to copy in `@app/core/constants/messages`
+- Rendering a sidebar component in a test without wrapping it in `SidebarProvider` — `useSidebar()` throws
+- Expecting `isDevelopment` to be true in a test — it is a module-load constant and Vitest sets `NODE_ENV=test`; mock `@/lib/env-helpers`
+- Naming a Vitest file `*.spec.ts` — that suffix is reserved for Playwright and is excluded from the Vitest run
