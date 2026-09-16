@@ -14,6 +14,7 @@
   "eslint.workingDirectories": [
     "web-app/apps/web",
     "web-app/packages/ui",
+    "web-app/packages/components",
     "web-app/packages/auth"
   ]
 }

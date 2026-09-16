@@ -1,0 +1,28 @@
+{
+  "name": "@app/components",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    "./*": "./src/*.tsx"
+  },
+  "dependencies": {
+    "@app/core": "workspace:*",
+    "@app/ui": "workspace:*",
+    "lucide-react": "^1.8.0"
+  },
+  "peerDependencies": {
+    "next": ">=16.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.3"
+  },
+  "scripts": {
+    "lint": "eslint"
+  }
+}

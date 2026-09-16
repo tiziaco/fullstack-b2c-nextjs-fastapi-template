@@ -9,11 +9,9 @@
     "./package.json": "./package.json",
     "./styles/globals.css": "./src/styles/globals.css",
     "./hooks/*": "./src/hooks/*.ts",
-    "./layout/*": "./src/components/layout/*.tsx",
     "./*": "./src/primitives/*.tsx"
   },
   "peerDependencies": {
-    "next": ">=16.0.0",
     "react": "^19.0.0"
   },
   "dependencies": {

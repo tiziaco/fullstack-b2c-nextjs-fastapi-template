@@ -128,10 +128,3 @@ export {
 } from "./primitives/sidebar"
 export { Toaster } from "./primitives/sonner"
 export { ThemeProvider } from "./primitives/theme-provider"
-
-// Layout
-export { AppSidebar } from "./components/layout/app-sidebar"
-export { MenuNavigator } from "./components/layout/nav-sidebar"
-export { UserDetailsPanel } from "./components/layout/user-panel"
-export type { UserPanelUser } from "./components/layout/user-panel"
-export { CompanyLogo } from "./components/layout/company-logo"
