@@ -100,7 +100,9 @@ so add a line there too or the component is missing from `import { … } from "@
 
 A component composed out of those primitives, with no Clerk or API-client wiring, belongs
 in `packages/components`. One bound to this app's auth, routes or API payloads belongs in
-`apps/web/src/components/`.
+`apps/web/src/components/` — as does a shipped example a fork is meant to rewrite rather
+than configure, even when it has no such wiring. `GeneralSettings` is the second kind;
+`web-app/CLAUDE.md` has the full rule.
 
 ## Docker Commands
 

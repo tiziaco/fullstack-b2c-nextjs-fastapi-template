@@ -33,8 +33,9 @@ by what survives a React Native port, not by taste.
 - **`@app/ui`** is web-only and permanently so. Base UI, DOM elements, CSS variables,
   `sonner` and `next-themes` do not run on React Native. A native target means a second
   primitives package (react-native-reusables / NativeWind), never an adapter for this one.
-- **`@app/components`** is composed chrome that knows the app's nav shape, user model and
-  branding. It reaches for `next/image`, `next/link` and `usePathname`.
+- **`@app/components`** is composed chrome that knows the app's nav shape, user model,
+  branding and settings surface. It reaches for `next/image`, `next/link` and
+  `usePathname`.
 
 Import shapes differ on purpose — the subpath should carry information:
 
@@ -42,6 +43,7 @@ Import shapes differ on purpose — the subpath should carry information:
 import { Button, Skeleton } from "@app/ui"              // barrel: @app/ui/button adds nothing
 import { Skeleton } from "@app/ui/skeleton"             // subpaths also work
 import { AppSidebar } from "@app/components/layout/app-sidebar"   // no barrel
+import { SettingsDialog } from "@app/components/settings/settings-dialog"
 import { cn } from "@app/core/lib/utils"                          // no barrel
 import type { NavItem } from "@app/core/types/nav"
 ```
@@ -154,11 +156,21 @@ Where a new one belongs:
 | A shadcn/Base UI primitive | `packages/ui/src/primitives/` (via `shadcn add` from `packages/ui`) |
 | Composed chrome, reusable, no app-specific wiring | `packages/components/src/` |
 | Bound to Clerk, the API client, or this app's routes | `apps/web/src/components/` |
+| A shipped example a fork is meant to rewrite | `apps/web/src/components/` |
 | A type, constant or pure helper with no rendering | `packages/core/src/` |
 
-The seam between the last two is the slot pattern: `AppSidebar` takes `settingsSlot` and
-`userSlot`, and `apps/web` injects the Clerk-aware pieces. Prefer that over importing
-`@app/auth` or `@app/api-client` into `packages/components`.
+The "shipped example" row is the one that is easy to get wrong, because dependencies do not
+decide it. `GeneralSettings` imports nothing but `@app/ui` and `next-themes`, so the rows
+above it say "promote"; it stays in the app anyway. It has no props and no slot — its body
+*is* the customization, and `SETTINGS_TABS` in `(dashboard)/layout.tsx` is the extension point it
+hangs off. Ask whether a fork configures the component or rewrites it. Rewrites stay here.
+
+The seam everywhere else is the slot pattern: `AppSidebar` takes `settingsSlot` and
+`userSlot`, `SettingsDialog` takes `footerSlot`, and `apps/web` injects the Clerk- and
+API-aware pieces. That is also the promotion mechanism — `SettingsDialog` moved into
+`packages/components` by turning its one hardcoded `<ServerHealthIndicator />` into
+`footerSlot`. Prefer that over importing `@app/auth` or `@app/api-client` into
+`packages/components`.
 
 ### Server vs Client Components
 

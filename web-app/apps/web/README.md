@@ -149,11 +149,16 @@ instead. See `web-app/CLAUDE.md` for the full rationale and the server-side equi
   without the `dom` lib, so browser globals are a type error there.
 - **`@app/ui`** — shadcn/Base UI primitives. Web only, permanently — these do not run on
   React Native. Has a barrel: `import { Button } from "@app/ui"`.
-- **`@app/components`** — composed chrome (`AppSidebar`, `UserDetailsPanel`, …) built on
-  `@app/ui`. No barrel: `import { AppSidebar } from "@app/components/layout/app-sidebar"`.
+- **`@app/components`** — composed chrome (`AppSidebar`, `UserDetailsPanel`,
+  `SettingsDialog`, …) built on `@app/ui`. No barrel:
+  `import { AppSidebar } from "@app/components/layout/app-sidebar"`.
 - **`@app/auth`** — `Role` enum, `useAppAuth()`, `getUserRole()`
 - **`@app/api-client`** — generated API client (types, endpoints, hooks) from the OpenAPI spec
 
 Always check `packages/ui` and `packages/components` before creating new components. A
 component that needs Clerk or the API client stays here in the app and is wired into the
-shared one through a slot prop — `ClerkUserPanel` is the worked example.
+shared one through a slot prop — `ClerkUserPanel` and `ServerHealthIndicator` are the
+worked examples, filling `userSlot` on `AppSidebar` and `footerSlot` on `SettingsDialog`.
+
+A shipped example a fork is meant to rewrite rather than configure also stays here, even
+with no such wiring — `GeneralSettings` is the one. See `web-app/CLAUDE.md`.
