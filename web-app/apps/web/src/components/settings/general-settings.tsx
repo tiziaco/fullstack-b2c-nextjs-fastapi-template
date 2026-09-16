@@ -12,7 +12,7 @@ import {
 import { useTheme } from "next-themes"
 import { Sun, Moon, Monitor } from "lucide-react"
 
-export function GeneralSection() {
+export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
 
   const displayTheme = theme
@@ -34,7 +34,7 @@ export function GeneralSection() {
 
   return (
     <div className="space-y-6">
-      <SettingSection title="Aspect">
+      <SettingSection title="Appearance">
         <div className="flex items-center justify-between">
           <Label>Theme</Label>
           <Select

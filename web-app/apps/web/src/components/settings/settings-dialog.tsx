@@ -21,7 +21,7 @@ import {
 } from "@app/ui/sidebar"
 import { ServerHealthIndicator } from "./server-status"
 
-export interface SettingsSection {
+export interface SettingsTab {
   id: string
   label: string
   icon: React.ReactNode
@@ -29,13 +29,13 @@ export interface SettingsSection {
 }
 
 interface SettingsDialogProps {
-  sections: SettingsSection[]
+  tabs: SettingsTab[]
   trigger?: React.ReactElement
 }
 
-export function SettingsDialog({ sections, trigger }: SettingsDialogProps) {
-  const [activeSection, setActiveSection] = useState(sections[0]?.id ?? "")
-  const active = sections.find((s) => s.id === activeSection)
+export function SettingsDialog({ tabs, trigger }: SettingsDialogProps) {
+  const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? "")
+  const active = tabs.find((t) => t.id === activeTab)
 
   return (
     <Dialog>
@@ -58,14 +58,14 @@ export function SettingsDialog({ sections, trigger }: SettingsDialogProps) {
           <Sidebar collapsible="none" className="w-50 border-r flex flex-col">
             <SidebarContent className="p-3 mt-10 flex-1">
               <SidebarMenu>
-                {sections.map((section) => (
-                  <SidebarMenuItem key={section.id}>
+                {tabs.map((tab) => (
+                  <SidebarMenuItem key={tab.id}>
                     <SidebarMenuButton
-                      isActive={activeSection === section.id}
-                      onClick={() => setActiveSection(section.id)}
+                      isActive={activeTab === tab.id}
+                      onClick={() => setActiveTab(tab.id)}
                     >
-                      {section.icon}
-                      {section.label}
+                      {tab.icon}
+                      {tab.label}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
