@@ -24,7 +24,14 @@ COPY pyproject.toml uv.lock ./
 
 # Export requirements and install to a custom prefix
 # This creates a clean, portable Python environment
-RUN uv export --frozen --no-dev --format requirements-txt -o requirements.txt && \
+#
+# --no-default-groups, not --no-dev. pyproject.toml sets
+# default-groups = ["dev", "test"] so a fresh clone can run the suite without
+# extra flags, and --no-dev is an alias for --no-group dev: it would drop `dev`
+# and let `test` through, shipping pytest, coverage, testcontainers and the
+# docker client into this image. Keep the two in step -- see the comment beside
+# default-groups in pyproject.toml.
+RUN uv export --frozen --no-default-groups --format requirements-txt -o requirements.txt && \
     uv pip install --no-cache-dir --python /usr/local/bin/python --prefix=/install -r requirements.txt && \
     # Remove unnecessary files to reduce size
     find /install -type d -name "tests" -o -name "test" -o -name "__pycache__" | xargs rm -rf && \

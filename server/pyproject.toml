@@ -85,6 +85,23 @@ constraint-dependencies = [
     "openai<4",
 ]
 
+# `uv sync` and `uv run` install these with no flags, so a fresh clone can run
+# `make test` without anyone remembering `--group test`.
+#
+# COUPLED TO server/Dockerfile. Its builder stage exports a requirements.txt for
+# the production image and must pass `--no-default-groups`, NOT `--no-dev`:
+# `--no-dev` is an alias for `--no-group dev` and drops only that one group, so
+# with `test` promoted here it would sail straight through and ship pytest,
+# coverage, testcontainers and the docker client into the runtime image.
+#
+# Nothing enforces this pairing -- `make deploy-check` proves the stack starts,
+# not what is inside the image. Change one, change the other. To verify:
+#
+#   uv export --frozen --no-default-groups --format requirements-txt | grep -c pytest
+#
+# must print 0.
+default-groups = ["dev", "test"]
+
 [tool.app.metadata]
 # The service's public identity, and the one place a fork changes it.
 #
