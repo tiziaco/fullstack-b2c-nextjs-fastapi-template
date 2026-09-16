@@ -13,11 +13,42 @@ web-app/
 └── packages/
     ├── api-client/        # Generated API client from the OpenAPI spec (packages/api-client)
     ├── auth/              # Role enum, useAppAuth(), getUserRole() (packages/auth)
-    └── ui/                # Shared shadcn/ui components (packages/ui)
+    ├── core/              # cn(), NavItem, curated copy — no renderer (packages/core)
+    ├── ui/                # shadcn/Base UI primitives — WEB ONLY (packages/ui)
+    └── components/        # Composed app chrome, built on ui (packages/components)
 ```
 
 The workspace shape (an `apps/` + `packages/` split with shared UI and auth packages)
 is what a second app would reuse — nothing about it is single-app-specific.
+
+### The three UI packages, and why they are three
+
+They stack: `@app/core` ← `@app/ui` ← `@app/components` ← `apps/web`. The split is
+by what survives a React Native port, not by taste.
+
+- **`@app/core`** holds everything with no render dependency. It builds with
+  `lib: ["esnext"]` and no `"dom"`, so `window` in its own source is a **type error** —
+  that is the enforcement, not a convention. `skipLibCheck` is load-bearing alongside it
+  (see the comment in its tsconfig); do not flip it off.
+- **`@app/ui`** is web-only and permanently so. Base UI, DOM elements, CSS variables,
+  `sonner` and `next-themes` do not run on React Native. A native target means a second
+  primitives package (react-native-reusables / NativeWind), never an adapter for this one.
+- **`@app/components`** is composed chrome that knows the app's nav shape, user model and
+  branding. It reaches for `next/image`, `next/link` and `usePathname`.
+
+Import shapes differ on purpose — the subpath should carry information:
+
+```ts
+import { Button, Skeleton } from "@app/ui"              // barrel: @app/ui/button adds nothing
+import { Skeleton } from "@app/ui/skeleton"             // subpaths also work
+import { AppSidebar } from "@app/components/layout/app-sidebar"   // no barrel
+import { cn } from "@app/core/lib/utils"                          // no barrel
+import type { NavItem } from "@app/core/types/nav"
+```
+
+`@app/ui`'s `exports` is wildcard-based, so `shadcn add` needs no `package.json` edit —
+but its barrel (`packages/ui/src/index.ts`) is still hand-maintained, so **a new primitive
+needs a line there** or it is silently missing from `@app/ui`.
 
 ---
 
@@ -45,7 +76,7 @@ cp apps/web/.env.example apps/web/.env.local
 ## Lint and Format
 
 ```bash
-pnpm lint            # ESLint in the app and in packages/ui, packages/auth
+pnpm lint            # ESLint in the app and in packages/ui, packages/components, packages/auth
 pnpm format          # Prettier --write (config: .prettierrc, semicolons off)
 pnpm format:check    # what the root pre-push hook runs
 ```
@@ -115,7 +146,19 @@ This project uses **Base UI** (`@base-ui/react`), not Radix UI. Patterns are dif
 
 ### Shared Components
 
-Always check `packages/ui` before creating a new component. Add new shared components there, not inside individual apps.
+Always check `packages/ui` and `packages/components` before creating a new component.
+Where a new one belongs:
+
+| What it is | Where |
+|---|---|
+| A shadcn/Base UI primitive | `packages/ui/src/primitives/` (via `shadcn add` from `packages/ui`) |
+| Composed chrome, reusable, no app-specific wiring | `packages/components/src/` |
+| Bound to Clerk, the API client, or this app's routes | `apps/web/src/components/` |
+| A type, constant or pure helper with no rendering | `packages/core/src/` |
+
+The seam between the last two is the slot pattern: `AppSidebar` takes `settingsSlot` and
+`userSlot`, and `apps/web` injects the Clerk-aware pieces. Prefer that over importing
+`@app/auth` or `@app/api-client` into `packages/components`.
 
 ### Server vs Client Components
 
@@ -195,7 +238,9 @@ Rules:
 
 **Errors.** Every hook's `error` is an `ApiError` — `{ status, body, requestId }` — and
 nothing else. `QueryProvider` toasts centrally, mapping the **status** to curated copy in
-`src/lib/messages.ts`.
+`@app/core/constants/messages` (`packages/core/src/constants/messages.ts`) — it lives in
+core because a native client hitting the same API needs the identical mapping, and the
+rule it encodes (never surface server-authored text) should be inherited, not re-derived.
 
 ```typescript
 // ✅ Correct — a status maps to copy we wrote
@@ -227,7 +272,7 @@ toast.error(String(error.body))
 
 - Using `asChild` (Radix) instead of `render` prop (Base UI)
 - Placing `DropdownMenuLabel` outside `DropdownMenuGroup`
-- Creating new components in `apps/` that belong in `packages/ui`
+- Creating new components in `apps/` that belong in `packages/ui` or `packages/components`
 - Returning `null` from loading states
 - Using wrong skeleton colors inside sidebars
 - Forgetting `"use client"` on components with hooks or event handlers
@@ -237,7 +282,10 @@ toast.error(String(error.body))
 - Reading `sessionClaims.metadata.role` or Clerk's organization-role field for role checks — the claim is a top-level `sessionClaims.role`, read through `getUserRole()`
 - Calling `useAuth()` / `useUser()` directly in components — use `useAppAuth()` from `@app/auth`
 - Putting auth logic in `packages/ui` — it belongs in `packages/auth`
+- Importing `@app/ui` or anything DOM-flavoured into `packages/core` — it has no `"dom"` lib and will not compile
+- Adding a primitive to `packages/ui/src/primitives/` and forgetting the matching line in `packages/ui/src/index.ts`
+- Adding a package under `packages/` without a `@source` line in `apps/web/src/styles/globals.css` — Tailwind scans paths, not the package graph, so the build still passes and the UI renders unstyled
 - Hand-editing files under `packages/api-client/src/generated/` — the next generation deletes them
 - Hand-writing a type for a request or response body — import it from `@app/api-client/types`
 - Changing a server route without running `make gen-contract` in the same commit
-- Rendering `error.message` or `error.body` — map `error.status` to copy in `src/lib/messages.ts`
+- Rendering `error.message` or `error.body` — map `error.status` to copy in `@app/core/constants/messages`

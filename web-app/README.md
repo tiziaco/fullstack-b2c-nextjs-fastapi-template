@@ -12,7 +12,9 @@ web-app/
 └── packages/
     ├── api-client/        # @app/api-client — generated API client from the OpenAPI spec
     ├── auth/              # @app/auth — Role enum, useAppAuth(), getUserRole()
-    └── ui/                # @app/ui — shared UI utilities (cn())
+    ├── core/              # @app/core — cn(), NavItem, copy; no renderer, no DOM
+    ├── ui/                # @app/ui — shadcn/Base UI primitives (web only)
+    └── components/        # @app/components — composed app chrome, built on @app/ui
 ```
 
 ## Tech Stack
@@ -61,31 +63,44 @@ pnpm type-check      # TypeScript check across all packages
 | Dependency type | Where to add |
 |-----------------|--------------|
 | Runtime dep used by the app | `apps/web` |
-| Pure UI wrapper / zero-config provider | `packages/ui` |
+| Needed by a primitive | `packages/ui` |
+| Needed by composed chrome | `packages/components` |
+| Pure helper, type or constant — no rendering | `packages/core` |
 | Tooling (eslint, typescript, etc.) | Workspace root (`-w`) |
 
 ```bash
 # Add to the app
 pnpm --filter web add <package>
 
-# Add to the shared UI package
+# Add to a shared package
 pnpm --filter @app/ui add <package>
+pnpm --filter @app/components add <package>
+pnpm --filter @app/core add <package>
 
 # Add to the workspace root (tooling only)
 pnpm add -w <package>
 ```
 
+`@app/core` compiles without the `dom` lib on purpose, so anything browser-flavoured
+does not belong there — the type checker will say so.
+
 ### Adding shadcn components
 
-shadcn components that are shared belong in `packages/ui`. Run from that directory:
+shadcn primitives belong in `packages/ui`. Run from that directory — it holds the only
+`components.json` in the repo:
 
 ```bash
 cd packages/ui && pnpm dlx shadcn@latest add button dialog table
 ```
 
-Components land in `packages/ui/src/components/ui/` and are exported from `packages/ui/src/index.ts`. Import them in apps via `@app/ui`.
+Components land in `packages/ui/src/primitives/` and are importable immediately as
+`@app/ui/button`: the package's `exports` is a wildcard, so **no `package.json` edit is
+needed**. The barrel is a separate matter — `packages/ui/src/index.ts` is hand-maintained,
+so add a line there too or the component is missing from `import { … } from "@app/ui"`.
 
-If a component is only used in one app, add it directly inside that app instead.
+A component composed out of those primitives, with no Clerk or API-client wiring, belongs
+in `packages/components`. One bound to this app's auth, routes or API payloads belongs in
+`apps/web/src/components/`.
 
 ## Docker Commands
 

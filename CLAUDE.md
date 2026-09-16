@@ -25,7 +25,9 @@ app/
 │   └── packages/
 │       ├── api-client/        # @app/api-client — generated API client from the OpenAPI spec
 │       ├── auth/              # @app/auth — Role enum, useAppAuth(), getUserRole()
-│       └── ui/                # @app/ui — shared component library (shadcn/ui)
+│       ├── core/              # @app/core — cn(), NavItem, copy; no renderer, no DOM
+│       ├── ui/                # @app/ui — shadcn/Base UI primitives (web only)
+│       └── components/        # @app/components — composed app chrome, built on @app/ui
 ├── infra/                # Infrastructure config
 │   ├── prometheus/            # Prometheus scrape config
 │   └── grafana/               # Grafana datasources and dashboards

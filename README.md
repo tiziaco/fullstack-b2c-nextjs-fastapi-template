@@ -12,7 +12,8 @@ that cannot silently drift from its client, and a deploy story.
 - **Clerk authentication with a platform role** — `user` or `admin`, sourced from
   `publicMetadata.role` and carried on the session token as a custom `role` claim; no
   Organizations, no tenant scoping
-- **A Next.js 16 app** built on `packages/ui`, `packages/auth` and a generated API client
+- **A Next.js 16 app** built on `packages/core`, `packages/ui`, `packages/components`,
+  `packages/auth` and a generated API client
 - **A generated, committed API contract** — `server/openapi.json` and the TanStack Query
   hooks derived from it, with four gates that fail if they drift from the routes
 - **GDPR erasure** wired end to end, including LangGraph checkpoints and mem0 memories
@@ -88,7 +89,9 @@ ripping out first.
 │   └── packages/
 │       ├── api-client/            # @app/api-client — generated from openapi.json
 │       ├── auth/                  # @app/auth — Role, useAppAuth(), getUserRole()
-│       └── ui/                    # @app/ui — shared shadcn/ui components
+│       ├── core/                  # @app/core — cn(), NavItem, copy; no renderer
+│       ├── ui/                    # @app/ui — shadcn/Base UI primitives (web only)
+│       └── components/            # @app/components — composed app chrome
 ├── docs/                          # Setup guides, deploy notes
 ├── infra/                         # Prometheus + Grafana config
 ├── scripts/                       # gen-contract, check-contract, verify-infra, deploy-check
