@@ -9,8 +9,9 @@ import { HUB_NAV } from "@/lib/hub-nav"
 import {
   SettingsDialog,
   type SettingsTab,
-} from "@/components/settings/settings-dialog"
+} from "@app/components/settings/settings-dialog"
 import { GeneralSettings } from "@/components/settings/general-settings"
+import { ServerHealthIndicator } from "@/components/settings/server-status"
 import { ClerkUserPanel } from "@/components/layout/clerk-user-panel"
 import { Settings, Cog } from "lucide-react"
 
@@ -44,6 +45,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 <span>Settings</span>
               </SidebarMenuButton>
             }
+            footerSlot={<ServerHealthIndicator />}
           />
         }
         userSlot={<ClerkUserPanel />}

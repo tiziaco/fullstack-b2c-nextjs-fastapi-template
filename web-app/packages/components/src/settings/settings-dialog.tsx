@@ -19,7 +19,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@app/ui/sidebar"
-import { ServerHealthIndicator } from "./server-status"
 
 export interface SettingsTab {
   id: string
@@ -31,9 +30,14 @@ export interface SettingsTab {
 interface SettingsDialogProps {
   tabs: SettingsTab[]
   trigger?: React.ReactElement
+  footerSlot?: React.ReactNode
 }
 
-export function SettingsDialog({ tabs, trigger }: SettingsDialogProps) {
+export function SettingsDialog({
+  tabs,
+  trigger,
+  footerSlot,
+}: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? "")
   const active = tabs.find((t) => t.id === activeTab)
 
@@ -71,9 +75,7 @@ export function SettingsDialog({ tabs, trigger }: SettingsDialogProps) {
                 ))}
               </SidebarMenu>
             </SidebarContent>
-            <SidebarFooter>
-              <ServerHealthIndicator />
-            </SidebarFooter>
+            {footerSlot && <SidebarFooter>{footerSlot}</SidebarFooter>}
           </Sidebar>
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="overflow-y-auto flex-1">
