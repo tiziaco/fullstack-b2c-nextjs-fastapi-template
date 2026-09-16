@@ -47,12 +47,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff", "djlint==1.36.4"]
 eval = ["colorama>=0.4.6", "tqdm>=4.67.1"]
 
 [dependency-groups]
 dev = [
     "colorama>=0.4.6",
+    "ruff>=0.16.5",
 ]
 test = [
     "httpx>=0.28.1",
