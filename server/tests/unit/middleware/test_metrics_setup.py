@@ -16,6 +16,8 @@ from starlette.testclient import TestClient
 
 from app.api.middlewares.prometheus import setup_metrics
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def client() -> TestClient:
