@@ -1,4 +1,4 @@
-.PHONY: help dev-preflight dev-tunnel check check-server check-web gen-contract check-contract deploy-check clerk-bootstrap-env clerk-pull-config clerk-apply-config clerk-check-config clerk-seed-users docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
+.PHONY: help dev-preflight dev-tunnel check check-server check-web test-web gen-contract check-contract deploy-check clerk-bootstrap-env clerk-pull-config clerk-apply-config clerk-check-config clerk-seed-users docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
 
 DOCKER_COMPOSE ?= docker-compose
 COMPOSE_FILE ?= docker-compose.dev.yml
@@ -38,6 +38,7 @@ help:
 	@echo "  make check              - Lint and format-check both sides (what the pre-push hook runs)"
 	@echo "  make check-server       - ruff check + ruff format --check"
 	@echo "  make check-web          - pnpm lint + pnpm format:check"
+	@echo "  make test-web           - Vitest unit and component tests (web-app)"
 	@echo ""
 	@echo "Contract:"
 	@echo "  make gen-contract       - Re-export openapi.json and regenerate the typed API client"
@@ -131,6 +132,16 @@ check-server:
 
 check-web:
 	@cd web-app && pnpm -s lint && pnpm -s format:check
+
+# Tests are a separate category from `check`, which is read-only lint/format.
+# The server side is `cd server && make test`; this is the web equivalent.
+# Nothing gates on it yet — no CI step and no pre-push hook.
+#
+# No NODE_ENV here on purpose: this Makefile `-include`s and exports
+# web-app/apps/web/.env.local, so whatever that file holds lands in the test
+# process. vitest.config.mts pins NODE_ENV=test for every entry point instead.
+test-web:
+	@cd web-app && pnpm -s test
 
 # The OpenAPI spec and the generated API client are committed artifacts. This
 # regenerates both and fails if the committed versions are stale.
