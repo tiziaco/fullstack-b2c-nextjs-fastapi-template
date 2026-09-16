@@ -11,7 +11,7 @@ import {
 } from "../ui/sidebar"
 import { MenuNavigator } from "./nav-sidebar"
 import { CompanyLogo } from "./company-logo"
-import type { NavItem } from "../../types/nav"
+import type { NavItem } from "@app/core/types/nav"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   items: NavItem[]

@@ -12,7 +12,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "../ui/sidebar"
-import type { NavItem } from "../../types/nav"
+import type { NavItem } from "@app/core/types/nav"
 
 export function MenuNavigator({ items }: { items: NavItem[] }) {
   const pathname = usePathname() || "/"

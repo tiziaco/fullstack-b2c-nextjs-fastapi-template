@@ -1,8 +1,8 @@
 // Utilities
-export { cn } from "./lib/utils"
+export { cn } from "@app/core/lib/utils"
 
 // Types
-export type { NavItem } from "./types/nav"
+export type { NavItem } from "@app/core/types/nav"
 
 // Hooks
 export { useIsMobile } from "./hooks/use-mobile"

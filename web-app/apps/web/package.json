@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.3.0",
     "@clerk/nextjs": "^6.0.0",
     "@app/api-client": "workspace:*",
+    "@app/core": "workspace:*",
     "@app/auth": "workspace:*",
     "@app/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
