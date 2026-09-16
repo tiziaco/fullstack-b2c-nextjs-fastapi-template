@@ -11,7 +11,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { ApiError } from "@app/api-client"
 import { isDevelopment } from "../lib/env-helpers"
-import { messages } from "../lib/messages"
+import { messages } from "@app/core/constants/messages"
 
 /**
  * Map an error to a toast.

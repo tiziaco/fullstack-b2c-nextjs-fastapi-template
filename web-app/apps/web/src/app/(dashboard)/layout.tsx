@@ -1,4 +1,4 @@
-import { AppSidebar } from "@app/ui/layout/app-sidebar"
+import { AppSidebar } from "@app/components/layout/app-sidebar"
 import {
   SidebarInset,
   SidebarProvider,
@@ -6,17 +6,21 @@ import {
   SidebarTrigger,
 } from "@app/ui/sidebar"
 import { HUB_NAV } from "@/lib/hub-nav"
-import { SettingsDialog } from "@/components/settings/settings-dialog"
-import { GeneralSection } from "@/components/settings/sections/general-section"
+import {
+  SettingsDialog,
+  type SettingsTab,
+} from "@app/components/settings/settings-dialog"
+import { GeneralSettings } from "@/components/settings/general-settings"
+import { ServerHealthIndicator } from "@/components/settings/server-status"
 import { ClerkUserPanel } from "@/components/layout/clerk-user-panel"
 import { Settings, Cog } from "lucide-react"
 
-const SETTINGS_SECTIONS = [
+const SETTINGS_TABS: SettingsTab[] = [
   {
     id: "general",
     label: "General",
     icon: <Settings className="w-5 h-5" />,
-    content: <GeneralSection />,
+    content: <GeneralSettings />,
   },
 ]
 
@@ -30,7 +34,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         variant="floating"
         settingsSlot={
           <SettingsDialog
-            sections={SETTINGS_SECTIONS}
+            tabs={SETTINGS_TABS}
             trigger={
               <SidebarMenuButton
                 size="lg"
@@ -41,6 +45,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 <span>Settings</span>
               </SidebarMenuButton>
             }
+            footerSlot={<ServerHealthIndicator />}
           />
         }
         userSlot={<ClerkUserPanel />}

@@ -57,10 +57,10 @@ In `web-app/apps/web/`:
 | Sidebar mark | `public/images/logo-small.png` |
 | Favicon | `public/icons/favicon.ico` |
 | Sidebar nav items | `src/lib/hub-nav.ts` → `HUB_NAV` |
-| Error toast copy | `src/lib/messages.ts` → `messages.toasts` |
+| Error toast copy | `web-app/packages/core/src/constants/messages.ts` → `messages.toasts` |
 
 The two image files are the only branding a text search cannot find. They are rendered
-through `packages/ui/src/components/layout/company-logo.tsx`.
+through `packages/components/src/layout/company-logo.tsx`.
 
 ## 3. Docker, Compose and deploy identity
 

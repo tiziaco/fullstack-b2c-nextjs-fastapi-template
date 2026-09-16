@@ -2,7 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs"
 import { useAppAuth } from "@app/auth"
-import { UserDetailsPanel } from "@app/ui/layout/user-panel"
+import { UserDetailsPanel } from "@app/components/layout/user-panel"
 
 export function ClerkUserPanel() {
   const { isLoaded, user } = useAppAuth()

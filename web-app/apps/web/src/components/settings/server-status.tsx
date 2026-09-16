@@ -1,6 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@app/core/lib/utils"
 import { useServerStatus } from "@/hooks/use-server-status"
 import {
   HoverCard,
