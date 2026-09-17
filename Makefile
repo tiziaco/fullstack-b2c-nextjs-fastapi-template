@@ -1,4 +1,4 @@
-.PHONY: help dev-preflight dev-tunnel check check-server check-web test-web gen-contract check-contract deploy-check clerk-bootstrap-env clerk-pull-config clerk-apply-config clerk-check-config clerk-seed-users docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
+.PHONY: help dev-preflight dev-tunnel check check-server check-web test-web gen-contract check-contract deploy-check clerk-bootstrap-env clerk-bootstrap-oauth clerk-pull-config clerk-apply-config clerk-check-config clerk-seed-users docker-build docker-build-web docker-build-api docker-run docker-run-core docker-run-db docker-migrate docker-migrate-status docker-stop docker-logs docker-logs-core clean rebuild rebuild-core
 
 DOCKER_COMPOSE ?= docker-compose
 COMPOSE_FILE ?= docker-compose.dev.yml
@@ -51,6 +51,7 @@ help:
 	@echo "  make clerk-check-config   - Fail if the instance has drifted from the committed baseline"
 	@echo "  make clerk-pull-config    - Refresh the baseline from the instance"
 	@echo "  make clerk-seed-users     - Create the dev users in scripts/clerk/dev-users.json"
+	@echo "  make clerk-bootstrap-oauth - Register the OAuth client behind Swagger's Authorize button (optional)"
 	@echo ""
 	@echo "Build Commands:"
 	@echo "  make docker-build       - Build all services (web-app, server)"
@@ -158,6 +159,12 @@ check-contract:
 # above; clerk-bootstrap-env is what puts it there.
 clerk-bootstrap-env:
 	@CLERK_APP_NAME="$(CLERK_APP_NAME)" ./scripts/clerk/bootstrap-env.sh
+
+# Optional, and separate from clerk-bootstrap-env because the Authorize button on
+# /docs is the only thing that reads what it writes — and because bootstrap-env
+# refuses to run once CLERK_APP_ID is set, which is every run after the first.
+clerk-bootstrap-oauth:
+	@./scripts/clerk/bootstrap-oauth.sh
 
 clerk-pull-config:
 	@./scripts/clerk/pull-config.sh

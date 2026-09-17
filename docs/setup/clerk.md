@@ -14,12 +14,18 @@ and `clerk auth login` done once:
 make clerk-bootstrap-env    # create the app, write keys to all three env files
 make clerk-apply-config     # §1's role claim, §2's sign-in settings
 make clerk-seed-users       # two dev users, pre-verified, ready to sign in
+make clerk-bootstrap-oauth  # optional — §5's Swagger Authorize button
 ```
 
-Three things those commands do **not** do, each explained where it comes up below:
-`ALLOWED_ORIGINS` (§4), the Swagger OAuth app (§5), and the webhook signing secret (§6).
-The dashboard walkthrough in each section remains correct — read it when you want to know
-what the scripts are doing, or when you are configuring an instance by hand.
+Two things those commands do **not** do, each explained where it comes up below:
+`ALLOWED_ORIGINS` (§4) and the webhook signing secret (§6). The dashboard walkthrough in
+each section remains correct — read it when you want to know what the scripts are doing,
+or when you are configuring an instance by hand.
+
+Only one of those two is *unscriptable*, and the distinction is worth keeping straight:
+`CLERK_WEBHOOK_SIGNING_SECRET` has no API that returns it (§6), whereas `ALLOWED_ORIGINS`
+is not a Clerk value at all — it is a decision about your own deployment that no Clerk
+API could know.
 
 Clerk is the only identity provider wired in. There is no local password store and no
 login endpoint to build. **This template does not use Clerk Organizations** — the
@@ -218,13 +224,36 @@ users get 401s from an API that is working perfectly.
 
 Only needed if you want to call authenticated endpoints from `/docs`.
 
-**Dashboard → OAuth applications → create a public client** (PKCE, no secret), and
-register the redirect URI `http://localhost:8100/oauth2-redirect`.
+```bash
+make clerk-bootstrap-oauth
+```
+
+Registers a public (PKCE) OAuth client named by `CLERK_OAUTH_APP_NAME` (default
+`B2C Template Swagger Docs`) and writes all three values into `server/.env.<APP_ENV>`.
+Idempotent — a client of that name is reused rather than duplicated, because Clerk does
+not treat the name as unique. Restart the API server afterwards for `/docs` to read them.
+
+An OAuth application is a **different Clerk resource** from the application itself, which
+is why `make clerk-bootstrap-env` never filled these in: `clerk env pull` returns the
+instance's publishable and secret keys, and an OAuth client is not among them. There is no
+first-class `clerk oauth-applications` subcommand either, so the script goes through
+`clerk api /oauth_applications`, resolving credentials from `--app`/`--instance` exactly
+as `seed-users.sh` does.
+
+Two values the script sets deliberately, rather than taking Clerk's defaults:
+
+| Field | Value | Why |
+|---|---|---|
+| `scopes` | `openid profile email offline_access` | Must cover what `OAuth2AuthorizationCodeBearer` declares in `app/api/dependencies/authentication.py`. Clerk's default is only `profile email`. |
+| `redirect_uris` | `http://localhost:8100/oauth2-redirect` | Must match `swagger_ui_oauth2_redirect_url` in `app/main.py` verbatim, host and port included. Override with `CLERK_OAUTH_REDIRECT_URI`. |
+
+**By hand:** Dashboard → OAuth applications → create a public client (PKCE, no secret),
+register the redirect URI above, then copy three values across:
 
 ```bash
-CLERK_OAUTH_CLIENT_ID=...
-CLERK_AUTHORIZE_URL=...
-CLERK_TOKEN_URL=...
+CLERK_OAUTH_CLIENT_ID=...   # the client id
+CLERK_AUTHORIZE_URL=...     # the application's authorize_url
+CLERK_TOKEN_URL=...         # the application's token_fetch_url — note the name
 ```
 
 OAuth access tokens carry no `azp` at all — they are authorised by `client_id` matching
@@ -248,7 +277,8 @@ OAuth access tokens carry no `azp` at all — they are authorised by `client_id`
 User events (JIT provisioning, offboarding) arrive by webhook. Full procedure, including
 the ngrok tunnel for local delivery: [`clerk-webhooks.md`](./clerk-webhooks.md).
 
-**This step cannot be scripted.** `CLERK_WEBHOOK_SIGNING_SECRET` is generated with the
+**This step is the one that genuinely cannot be scripted** — unlike §5's OAuth trio.
+`CLERK_WEBHOOK_SIGNING_SECRET` is generated with the
 endpoint, and no API creates one: the Backend API offers only `POST /webhooks/svix` (create
 the Svix app) and `POST /webhooks/svix_url` (mint a dashboard URL), neither of which
 registers an endpoint at a URL or returns its `whsec_`. Creating the endpoint and copying
@@ -266,4 +296,5 @@ its secret stays a dashboard visit.
 | `GET /api/v1/admin/ping` 403s from Swagger for an admin user | Expected — OAuth access tokens carry no `role` claim (§5). Test from the web app instead. |
 | Browser CORS error on every request | Same as the 401 row — one setting, two symptoms (§4). |
 | Roles work locally, not in staging/production | `ALLOWED_ORIGINS` is per-environment; each `server/.env.<env>` needs its own origins. |
+| Edited `server/.env.<env>`, the server still serves the old value | The dev server does not re-read it. `scripts/set_env.sh` exports the file into the shell that launches uvicorn, so `--reload` — which watches *code* — never picks up an env change. Stop the process and start it again. |
 | Role change in Clerk not taking effect | It should take effect on the user's next token refresh — there is no cache to invalidate (§2). If it still doesn't, check the token actually being sent is fresh, not one issued before the dashboard change. |
