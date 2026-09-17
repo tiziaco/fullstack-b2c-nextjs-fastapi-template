@@ -26,6 +26,15 @@ services:
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?required at build time - Next.js inlines it. Set it in web-app/apps/*/.env.local (the Makefile exports it) or in the Dokploy environment}
         NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
         NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+    environment:
+      # Server-side only, and deliberately not NEXT_PUBLIC_*. That variable is
+      # the BROWSER's view of the API — here, its public origin — so a server-side
+      # call to it leaves the host and comes back in through Traefik, depending on
+      # external DNS and TLS to reach a container on the same network. Server
+      # Components, route handlers, proxy.ts and scripts address the API by its
+      # compose service name instead. See
+      # .claude/skills/web-app-data-access/references/server-side-fetch.md
+      - API_INTERNAL_URL=${API_INTERNAL_URL:-http://server:8000}
     restart: unless-stopped
     # Documentation, not a binding: the proxy reaches this on the compose
     # network. The load-bearing part is the absence of `ports:`.

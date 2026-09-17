@@ -92,83 +92,20 @@ through the same config, so `make gen-contract` and `pnpm format` agree.
 
 ## Testing
 
-Vitest + Testing Library, in jsdom. One config at the workspace root
-(`vitest.config.mts`) covers every package; `vitest.setup.ts` holds the global stubs.
-Nothing gates on the suite yet — no CI step, no pre-push hook — so run it yourself:
+Vitest + Testing Library in jsdom; one config at `vitest.config.mts` covers every package.
+Nothing gates on the suite — no CI step, no pre-push hook — so run it yourself:
 `pnpm test`, or `make test-web` from the repo root.
 
 **Tests are co-located with their subjects.** `nav-sidebar.test.tsx` sits next to
-`nav-sidebar.tsx`.
+`nav-sidebar.tsx`. This diverges from `server/tests/` on purpose — a co-located test rides
+along with `git mv`, and files move between packages here routinely.
 
-```
-packages/components/src/layout/nav-sidebar.tsx
-packages/components/src/layout/nav-sidebar.test.tsx
-```
+**`*.test.*` is Vitest. `*.spec.*` is Playwright** and is excluded from the Vitest run.
 
-This deliberately diverges from `server/tests/`, which mirrors `app/` in a parallel tree.
-The reason is that files move between packages here routinely — `SettingsDialog` was
-promoted from `apps/web` into `packages/components` — and a co-located test rides along
-with `git mv`, while a parallel tree has to be remembered. The one time it is not, you get
-an orphaned test importing a path that no longer exists. Python's `tests/` convention
-exists partly for packaging reasons that do not apply to workspace-internal TypeScript.
-
-One consequence worth knowing: `@app/components` exports `"./*": "./src/*.tsx"`, so a
-co-located test is nominally importable as `@app/components/layout/nav-sidebar.test`.
-Harmless — the package is `private: true` and never builds — but it is real.
-
-**`*.test.*` is Vitest. `*.spec.*` is Playwright.** Vitest's default `include` matches
-both, so `vitest.config.mts` pins it to `.test.` only. E2E specs will live in a top-level
-`e2e/` directory (they have no package to co-locate with, since their subject is the
-running stack) and must never be run by Vitest — they need a live server and a database.
-
-### Does a component earn a test?
-
-Ask whether it has a **branch** or is a pass-through. Everything in
-`packages/ui/src/primitives/` is vendored shadcn — testing it tests Base UI. Most chrome
-just forwards props. What earns a test is conditional rendering, state, or a mapping:
-`MenuNavigator`'s active-route match, `SettingsDialog`'s tab state and `footerSlot`,
-`ServerHealthIndicator`'s status colours, `ClerkUserPanel`'s user mapping.
-
-### Three traps specific to this workspace
-
-1. **A sidebar component needs a `SidebarProvider` wrapper, not just a render.**
-   `SidebarMenuButton` calls `useSidebar()`, which throws outside a provider, and
-   `MenuNavigator` and `SettingsDialog` both render one. `SidebarProvider` then calls
-   `useIsMobile()` → `window.matchMedia`, which jsdom does not implement — hence the stub
-   in `vitest.setup.ts`. The wrapper is inlined per test file on purpose; when a third
-   file needs it, promote it to an `@app/test-utils` workspace package rather than
-   inventing a path alias, which would mean editing six standalone tsconfigs.
-
-2. **`isDevelopment` is computed once at module load** from `process.env.NODE_ENV`
-   (`apps/web/src/lib/env-helpers.ts`). Under Vitest it is `false`, so
-   `ServerHealthIndicator` silently takes the production path and its whole HoverCard
-   branch never renders — the naive test passes while covering half the component.
-   Reassigning `process.env.NODE_ENV` mid-test does nothing. Mock the module, with a
-   getter if one file needs both sides of the branch (see `server-status.test.tsx`).
-
-3. **Test files are type-checked** by `pnpm type-check`, like any other source. Two
-   consequences: a `.catch((e) => e)` typed `unknown` fails the build, and jest-dom's
-   matchers need `src/testing.d.ts` in each package that uses them — `vitest.setup.ts`
-   belongs to no package's tsconfig, so its augmentation does not reach them.
-
-`vitest.config.mts` forces `NODE_ENV=test` before anything reads it. Do not remove that
-line. Vitest only defaults `NODE_ENV` when it is unset, so any caller exporting it decides
-how React builds — and the root Makefile `-include`s and exports `apps/web/.env.local`
-wholesale. With `NODE_ENV=production` React loads its production build and every render
-test fails with an error that points nowhere near the cause.
-
-Related: **do not put `NODE_ENV` in an env file.** Next assigns it per command
-(`next dev` → development, `next build` → production) and `@next/env` refuses to override
-a variable already present in `process.env`, so the entry is inert for Next and only leaks
-into whatever else reads the file. `.env.example` shipped `NODE_ENV=production` for exactly
-this reason and it has been removed.
-
-New test files are checked by Prettier (`semi: false`) and, in `apps/web`, `packages/ui`,
-`packages/components` and `packages/auth`, by ESLint.
-
-Some tests pin behaviour that is **known to be wrong**, so that a fix is what makes them
-change. Those are recorded in [`docs/bugs.md`](./docs/bugs.md); a test asserting a bug
-names the entry in a comment.
+Before writing or debugging a test, read the **`/web-app-testing`** skill. It carries the
+workspace's four traps — a sidebar render that throws, a module-load `isDevelopment` that
+makes a passing test cover half its component, type-checked test files, and the pinned
+`NODE_ENV` — three of which fail in a way that points nowhere near the cause.
 
 ## Skills to Use
 
@@ -177,7 +114,8 @@ Invoke these skills before starting the relevant task:
 | Situation | Skill |
 |-----------|-------|
 | Designing or building any UI — layouts, components, pages, visual hierarchy | `/frontend-design` |
-| Deciding where/how to fetch data from the API | `/nextjs-data-fetching-strategy` |
+| Deciding where/how to fetch data from the API | `/web-app-data-access` |
+| Writing, running or debugging any test | `/web-app-testing` |
 | Building or refactoring React components | `/react` |
 | Adding auth, handling user input, or touching security-sensitive code | `/security-review` |
 | Performance optimization — bundle size, rendering, caching | `/vercel-react-best-practices` |
