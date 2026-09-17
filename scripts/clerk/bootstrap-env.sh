@@ -30,6 +30,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Two levels: this script lives in scripts/clerk/, not scripts/.
 cd "$SCRIPT_DIR/../.."
 
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 APP_NAME="${CLERK_APP_NAME:-B2C Template Dev}"
 
 if ! command -v jq > /dev/null 2>&1; then
@@ -47,38 +50,6 @@ if [ -n "${CLERK_APP_ID:-}" ]; then
   echo "To start over, remove CLERK_APP_ID from the root .env first."
   exit 1
 fi
-
-# Seed a missing env file from its example, the way server/scripts/set_env.sh does,
-# so this works on a fresh clone rather than failing on the third step.
-ensure_env_file() { # ensure_env_file <path> <example path>
-  if [ ! -f "$1" ]; then
-    if [ ! -f "$2" ]; then
-      echo "FAIL: neither $1 nor $2 exists."
-      exit 1
-    fi
-    cp "$2" "$1"
-    echo "    created $1 from $(basename "$2")"
-  fi
-}
-
-# Replace a key in place, or append it, leaving comments, blank lines and every
-# other key untouched. awk to a sibling temp rather than `sed -i`, whose syntax
-# differs between BSD (macOS) and GNU.
-upsert() { # upsert <file> <key> <value> [quoted]
-  local file=$1 key=$2 value=$3 quoted=${4:-} line
-  if [ -n "$quoted" ]; then line="$key=\"$value\""; else line="$key=$value"; fi
-  if grep -qE "^[[:space:]]*(export[[:space:]]+)?${key}=" "$file" 2>/dev/null; then
-    awk -v key="$key" -v line="$line" '
-      $0 ~ "^[[:space:]]*(export[[:space:]]+)?" key "=" { print line; next }
-      { print }
-    ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-  else
-    # A file not ending in a newline would otherwise glue the new key onto the
-    # last one.
-    [ -s "$file" ] && [ -n "$(tail -c 1 "$file")" ] && printf '\n' >> "$file"
-    printf '%s\n' "$line" >> "$file"
-  fi
-}
 
 # A publishable key is base64 of the frontend-API host, with a trailing '$' inside
 # the payload. macOS base64 -d emits silent garbage on unpadded input, so pad first.

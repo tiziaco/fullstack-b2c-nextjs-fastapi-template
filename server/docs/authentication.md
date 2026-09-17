@@ -109,8 +109,11 @@ Called via `asyncio.to_thread()` since the SDK is synchronous.
 ## Swagger UI OAuth2
 
 The `/docs` page has an "Authorize" button that triggers Clerk's OAuth2 Authorization Code flow. Configured in `app/main.py` via `swagger_ui_init_oauth`. Requires:
-- `CLERK_OAUTH_CLIENT_ID` from Clerk dashboard (public client — no secret needed, uses PKCE)
-- Redirect URI `http://localhost:8100/oauth2-redirect` registered in Clerk's OAuth app settings
+- `CLERK_OAUTH_CLIENT_ID` — a public client (PKCE, no secret). `make clerk-bootstrap-oauth`
+  registers one and writes all three env vars; by hand it is Dashboard → OAuth applications.
+- Redirect URI `http://localhost:8100/oauth2-redirect`, registered on that client. It must
+  match `swagger_ui_oauth2_redirect_url` verbatim — Clerk rejects the whole authorize
+  request otherwise.
 
 It authenticates fine — but see §1 and §4 above: the resulting token carries no `role`
 claim, so it cannot exercise a role-gated route.

@@ -30,6 +30,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Two levels: this script lives in scripts/clerk/, not scripts/.
 cd "$SCRIPT_DIR/../.."
 
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 ROSTER=scripts/clerk/dev-users.json
 
 if ! command -v jq > /dev/null 2>&1; then
@@ -56,18 +59,11 @@ fi
 # root Makefile's `-include web-app/apps/web/.env.local` exports it into every
 # make-launched process anyway. What is actually checkable is the instance we are
 # about to write to — a development instance issues pk_test_ keys.
+#
+# This matters more here than anywhere else that calls it: this script creates
+# users with weak, committed passwords.
 echo "==> Verifying the target is a development instance"
-if ! clerk apps list --json | jq -e --arg app "$CLERK_APP_ID" '
-  .[] | select(.application_id == $app) | .instances[]
-  | select(.environment_type == "development") | .publishable_key
-  | startswith("pk_test_")
-' > /dev/null 2>&1; then
-  echo "FAIL: $CLERK_APP_ID has no development instance issuing pk_test_ keys."
-  echo "This script creates users with weak, committed passwords and refuses to"
-  echo "run anywhere else. Check CLERK_APP_ID in the root .env against"
-  echo "'clerk apps list'."
-  exit 1
-fi
+require_dev_instance "$CLERK_APP_ID"
 
 # </dev/null matters: the roster loop below reads from a process substitution on
 # stdin, and any command inside it that decided to read stdin would swallow the
